@@ -6,13 +6,21 @@ export type HookContext = {
   hookText: string;
   videoDescription: string;
   targetAudience: string;
+  niche: string;
+  firstFrameContext: string;
   goals: HookGoal[];
 };
 
 export type HookAnalysisSubscores = {
   clarity: number;
-  pace: number;
-  goalFit: number;
+  specificity: number;
+  payoffSpeed: number;
+  curiosity: number;
+  audienceFit: number;
+  visualTextMatch: number;
+  scrollResistance: number;
+  pace?: number;
+  goalFit?: number;
 };
 
 export type HookAnalysisResult = {
@@ -22,7 +30,11 @@ export type HookAnalysisResult = {
   score: number;
   subscores: HookAnalysisSubscores;
   goals: HookGoal[];
-  rewrite: string;
+  verdict: string;
+  mainProblem: string;
+  bestFix: string;
+  rewrites: string[];
+  rewrite?: string;
   firstFrameText?: string;
   observations?: string[];
   improvements?: string[];
@@ -52,8 +64,8 @@ export type PreparedVideoClip = {
   windowDurationMs: number;
   preparedAt: string;
   status: 'ready';
-  mode: 'client-trim-window';
-  delivery: {
+  mode: 'client-trim-window' | 'text-context';
+  delivery?: {
     fieldName: 'video';
     uri: string;
     name: string;

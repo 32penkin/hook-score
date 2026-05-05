@@ -73,18 +73,53 @@ export class VideoPreparationService {
     };
   }
 
+  buildTextOnlyClip(context: HookContext): PreparedVideoClip {
+    const label = this.buildHookLabel(context);
+
+    return {
+      id: `text-hook-${Date.now()}`,
+      sourceUri: 'text://hook-score',
+      clipUri: 'text://hook-score',
+      fileName: label,
+      mimeType: 'text/plain',
+      durationSeconds: 3,
+      windowStartMs: 0,
+      windowDurationMs: 3000,
+      preparedAt: new Date().toISOString(),
+      status: 'ready',
+      mode: 'text-context',
+    };
+  }
+
   buildLocalAnalysisResult(clip: PreparedVideoClip, context: HookContext): HookAnalysisResult {
     const hookTextLength = context.hookText.length;
     const descriptionLength = context.videoDescription.length;
     const audienceLength = context.targetAudience.length;
+    const nicheLength = context.niche.length;
+    const firstFrameLength = context.firstFrameContext.length;
     const goalCount = context.goals.length;
 
     const clarity = this.clampScore(48 + Math.min(24, hookTextLength) + (descriptionLength > 24 ? 12 : 0));
-    const pace = this.clampScore(58 + (clip.durationSeconds === 3 ? 14 : 8) + (hookTextLength > 90 ? -8 : 4));
-    const goalFit = this.clampScore(50 + Math.min(goalCount, 3) * 9 + (audienceLength > 8 ? 12 : 0));
-    const score = Math.round((clarity + pace + goalFit) / 3);
+    const specificity = this.clampScore(44 + Math.min(24, descriptionLength / 2) + (nicheLength > 4 ? 12 : 0));
+    const payoffSpeed = this.clampScore(56 + (hookTextLength > 90 ? -12 : 8));
+    const curiosity = this.clampScore(50 + (hookTextLength > 18 ? 14 : 0) + (descriptionLength > 24 ? 8 : 0));
+    const audienceFit = this.clampScore(46 + Math.min(goalCount, 3) * 8 + (audienceLength > 8 ? 16 : 0));
+    const visualTextMatch = this.clampScore(48 + (firstFrameLength > 8 ? 18 : 0) + (descriptionLength > 24 ? 8 : 0));
+    const scrollResistance = this.clampScore(48 + (hookTextLength > 8 ? 14 : 0) + (hookTextLength > 100 ? -12 : 0));
+    const score = Math.round(
+      (
+        clarity +
+        specificity +
+        payoffSpeed +
+        curiosity +
+        audienceFit +
+        visualTextMatch +
+        scrollResistance
+      ) / 7
+    );
     const promise =
       context.hookText || context.videoDescription || 'Show the viewer one clear reason to keep watching';
+    const rewriteBase = promise.trim();
 
     return {
       id: `analysis-${Date.now()}`,
@@ -93,12 +128,48 @@ export class VideoPreparationService {
       score,
       subscores: {
         clarity,
-        pace,
-        goalFit,
+        specificity,
+        payoffSpeed,
+        curiosity,
+        audienceFit,
+        visualTextMatch,
+        scrollResistance,
       },
       goals: [...context.goals],
-      rewrite: `${promise.trim()} - then reveal the payoff within ${clip.durationSeconds}s.`,
+      verdict: this.buildVerdict(score),
+      mainProblem: 'The opening needs a clearer payoff before the setup.',
+      bestFix: 'Lead with the outcome or tension, then use the next beat as proof.',
+      rewrites: [
+        `${rewriteBase} - here is the part most people miss.`,
+        `Before you try ${context.videoDescription || 'this'}, check this first.`,
+        `I would not start ${context.niche || 'this video'} until I fixed this.`,
+      ],
+      rewrite: `${rewriteBase} - here is the part most people miss.`,
+      firstFrameText: context.firstFrameContext || 'Start with the outcome, not the setup.',
     };
+  }
+
+  private buildHookLabel(context: HookContext) {
+    const source = context.hookText || context.videoDescription || 'Hook draft';
+    const compact = source.replace(/\s+/g, ' ').trim();
+
+    return compact.length > 48 ? `${compact.slice(0, 45)}...` : compact;
+  }
+
+  private buildVerdict(score: number) {
+    if (score >= 80) {
+      return 'strong hook';
+    }
+
+    if (score >= 60) {
+      return 'promising';
+    }
+
+    if (score >= 40) {
+      return 'weak but fixable';
+    }
+
+    return 'needs a sharper hook';
   }
 
   private clampWindowStart(durationMs: number | undefined, windowStartMs: number, windowDurationMs: number) {

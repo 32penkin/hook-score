@@ -34,10 +34,9 @@ export const HistoryContainer = observer(function HistoryContainer({ navigation 
         empty: i18nStore.t('history.empty'),
         back: i18nStore.t('common.back'),
         itemGoal: i18nStore.t('history.itemGoal'),
-        clipWindow: i18nStore.t('history.clipWindow'),
         loading: i18nStore.t('history.loading'),
         score: i18nStore.t('analysis.score'),
-        rewrite: i18nStore.t('analysis.rewrite'),
+        bestFix: i18nStore.t('analysis.bestFix'),
       }}
       error={viewModel.errorMessage}
       goalLabels={goalLabels}

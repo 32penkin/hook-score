@@ -22,6 +22,8 @@ export class VideoPrepViewModel {
       hookText: '',
       videoDescription: '',
       targetAudience: '',
+      niche: '',
+      firstFrameContext: '',
       goals: ['views'],
     };
   }
@@ -79,7 +81,8 @@ export class VideoPrepViewModel {
 
   get canAnalyze() {
     return Boolean(
-      this.preparedClip &&
+      this.context.hookText.trim() &&
+        this.context.videoDescription.trim() &&
         this.videoStore.hasLoadedCurrentDayAnalysisUsage &&
         !this.isSourceLoading &&
         !this.isAnalyzing &&
@@ -130,7 +133,7 @@ export class VideoPrepViewModel {
 
     this.localErrorKey = null;
 
-    if (!this.preparedClip) {
+    if (!this.contextSnapshot.hookText || !this.contextSnapshot.videoDescription) {
       return false;
     }
 
@@ -139,7 +142,7 @@ export class VideoPrepViewModel {
       return false;
     }
 
-    return this.videoStore.analyzePreparedClip(this.contextSnapshot);
+    return this.videoStore.analyzeHook(this.contextSnapshot);
   }
 
   async pickAndPrepareVideo() {
@@ -202,6 +205,8 @@ export class VideoPrepViewModel {
       hookText: this.context.hookText.trim(),
       videoDescription: this.context.videoDescription.trim(),
       targetAudience: this.context.targetAudience.trim(),
+      niche: this.context.niche.trim(),
+      firstFrameContext: this.context.firstFrameContext.trim(),
       goals: [...this.context.goals],
     };
   }

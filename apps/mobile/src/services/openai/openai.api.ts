@@ -96,10 +96,6 @@ export class OpenAIClient implements VideoAnalyzerClient {
       throw new Error('OpenAI API key is not configured');
     }
 
-    if (input.frames.length === 0) {
-      throw new Error('No video frames were sampled for analysis');
-    }
-
     const response = await this.httpClient.post<OpenAIResponsesApiResponse>('/responses', {
       headers: {
         Authorization: `Bearer ${this.config.apiKey}`,
@@ -155,12 +151,16 @@ export class OpenAIClient implements VideoAnalyzerClient {
   ): HookAnalysisResult {
     return {
       id: responseId ?? `analysis-${Date.now()}`,
-      clipId: input.clip.id,
+      clipId: input.clip?.id ?? `text-hook-${Date.now()}`,
       createdAt: new Date().toISOString(),
       score: result.score,
       subscores: result.subscores,
       goals: result.goals.length > 0 ? result.goals : input.context.goals,
-      rewrite: result.rewrite,
+      verdict: result.verdict,
+      mainProblem: result.mainProblem,
+      bestFix: result.bestFix,
+      rewrites: result.rewrites,
+      rewrite: result.rewrites[0],
       firstFrameText: result.firstFrameText,
       observations: result.observations,
       improvements: result.improvements,

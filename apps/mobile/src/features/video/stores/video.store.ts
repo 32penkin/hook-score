@@ -170,23 +170,18 @@ export class VideoStore {
     }
   }
 
-  async analyzePreparedClip(context: HookContext) {
-    if (!this.preparedClip) {
-      logDebug('analyzePreparedClip:skipped-no-prepared-clip');
-      return false;
-    }
-
+  async analyzeHook(context: HookContext) {
     if (!this.hasLoadedCurrentDayAnalysisUsage) {
       await this.loadCurrentDayAnalysisUsage();
     }
 
     if (!this.hasLoadedCurrentDayAnalysisUsage) {
-      logDebug('analyzePreparedClip:skipped-usage-not-loaded');
+      logDebug('analyzeHook:skipped-usage-not-loaded');
       return false;
     }
 
     if (this.hasReachedDailyAnalysisLimit) {
-      logDebug('analyzePreparedClip:skipped-daily-limit', {
+      logDebug('analyzeHook:skipped-daily-limit', {
         todayAnalysisCount: this.todayAnalysisCount,
         todayAnalysisLimit: this.todayAnalysisLimit,
       });
@@ -196,12 +191,16 @@ export class VideoStore {
       return false;
     }
 
-    logDebug('analyzePreparedClip:start', {
-      clipId: this.preparedClip.id,
-      durationSeconds: this.preparedClip.durationSeconds,
+    const sourceClip = this.preparedClip ?? this.preparationService.buildTextOnlyClip(context);
+
+    logDebug('analyzeHook:start', {
+      clipId: sourceClip.id,
+      sourceMode: sourceClip.mode,
+      durationSeconds: sourceClip.durationSeconds,
       goals: context.goals,
       hasHookText: Boolean(context.hookText),
       hasVideoDescription: Boolean(context.videoDescription),
+      hasFirstFrameContext: Boolean(context.firstFrameContext),
     });
 
     runInAction(() => {
@@ -210,19 +209,21 @@ export class VideoStore {
     });
 
     try {
-      const frames = await this.frameExtractionService.extractOpeningFrames(this.preparedClip);
-      const audio = this.analyzerClient.supportsAudioInput
+      const frames = this.preparedClip
+        ? await this.frameExtractionService.extractOpeningFrames(this.preparedClip)
+        : [];
+      const audio = this.preparedClip && this.analyzerClient.supportsAudioInput
         ? await this.audioExtractionService.extractOpeningAudio(this.preparedClip)
         : null;
       const result = await this.analyzerClient.createHookScore({
-        clip: this.preparedClip,
+        clip: sourceClip,
         context,
         frames,
         audio,
       });
       const savedAnalysis = await this.analyzerUsageService.recordAnalysisResult({
         result,
-        clip: this.preparedClip,
+        clip: sourceClip,
         context,
       });
 
@@ -235,7 +236,7 @@ export class VideoStore {
         ].slice(0, 30);
       });
 
-      logDebug('analyzePreparedClip:success', {
+      logDebug('analyzeHook:success', {
         analysisId: result.id,
         score: result.score,
         historyId: savedAnalysis.historyItem.id,
@@ -245,13 +246,16 @@ export class VideoStore {
 
       return true;
     } catch (error) {
-      logError('analyzePreparedClip:error', error);
+      logError('analyzeHook:error', error);
       const errorMessage = this.getErrorMessage(error, 'Video analysis usage failed to update');
+      const isDailyLimitError =
+        errorMessage.includes(VIDEO_ANALYZER_DAILY_LIMIT_ERROR_MESSAGE) ||
+        errorMessage.includes('Daily video analysis limit reached');
 
       runInAction(() => {
-        this.error = errorMessage;
+        this.error = isDailyLimitError ? VIDEO_ANALYZER_DAILY_LIMIT_ERROR_MESSAGE : errorMessage;
 
-        if (errorMessage.includes(VIDEO_ANALYZER_DAILY_LIMIT_ERROR_MESSAGE)) {
+        if (isDailyLimitError) {
           this.dailyAnalysisUsage = {
             usageDate: this.dailyAnalysisUsage?.usageDate ?? new Date().toISOString().slice(0, 10),
             analysisCount: this.todayAnalysisLimit,
@@ -286,7 +290,7 @@ export class VideoStore {
     } catch (error) {
       logError('loadAnalysisHistory:error', error);
       runInAction(() => {
-        this.error = this.getErrorMessage(error, 'Video analyzer history failed to load');
+        this.error = this.getErrorMessage(error, 'Hook history failed to load');
       });
     } finally {
       runInAction(() => {

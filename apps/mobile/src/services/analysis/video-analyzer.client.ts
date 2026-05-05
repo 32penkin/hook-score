@@ -8,7 +8,7 @@ import {
 } from '../../shared/types/video.types';
 
 export type HookAnalysisInput = {
-  clip: PreparedVideoClip;
+  clip?: PreparedVideoClip | null;
   context: HookContext;
   frames: VideoFrameSample[];
   audio?: VideoAudioSample | null;
@@ -18,11 +18,18 @@ export type HookScoreApiResult = {
   score: number;
   subscores: {
     clarity: number;
-    pace: number;
-    goalFit: number;
+    specificity: number;
+    payoffSpeed: number;
+    curiosity: number;
+    audienceFit: number;
+    visualTextMatch: number;
+    scrollResistance: number;
   };
   goals: HookGoal[];
-  rewrite: string;
+  verdict: string;
+  mainProblem: string;
+  bestFix: string;
+  rewrites: string[];
   firstFrameText: string;
   observations: string[];
   improvements: string[];
@@ -48,7 +55,10 @@ export const hookScoreResponseSchema = {
     'score',
     'subscores',
     'goals',
-    'rewrite',
+    'verdict',
+    'mainProblem',
+    'bestFix',
+    'rewrites',
     'firstFrameText',
     'observations',
     'improvements',
@@ -62,19 +72,47 @@ export const hookScoreResponseSchema = {
     subscores: {
       type: 'object',
       additionalProperties: false,
-      required: ['clarity', 'pace', 'goalFit'],
+      required: [
+        'clarity',
+        'specificity',
+        'payoffSpeed',
+        'curiosity',
+        'audienceFit',
+        'visualTextMatch',
+        'scrollResistance',
+      ],
       properties: {
         clarity: {
           type: 'integer',
           minimum: 0,
           maximum: 100,
         },
-        pace: {
+        specificity: {
           type: 'integer',
           minimum: 0,
           maximum: 100,
         },
-        goalFit: {
+        payoffSpeed: {
+          type: 'integer',
+          minimum: 0,
+          maximum: 100,
+        },
+        curiosity: {
+          type: 'integer',
+          minimum: 0,
+          maximum: 100,
+        },
+        audienceFit: {
+          type: 'integer',
+          minimum: 0,
+          maximum: 100,
+        },
+        visualTextMatch: {
+          type: 'integer',
+          minimum: 0,
+          maximum: 100,
+        },
+        scrollResistance: {
           type: 'integer',
           minimum: 0,
           maximum: 100,
@@ -88,8 +126,22 @@ export const hookScoreResponseSchema = {
         enum: VALID_HOOK_GOALS,
       },
     },
-    rewrite: {
+    verdict: {
       type: 'string',
+    },
+    mainProblem: {
+      type: 'string',
+    },
+    bestFix: {
+      type: 'string',
+    },
+    rewrites: {
+      type: 'array',
+      minItems: 3,
+      maxItems: 3,
+      items: {
+        type: 'string',
+      },
     },
     firstFrameText: {
       type: 'string',
@@ -112,16 +164,22 @@ export const hookScoreResponseSchema = {
 export const buildHookScorePrompt = (input: HookAnalysisInput) =>
   JSON.stringify(
     {
-      task: 'Score this short-form video opening using the HookScore rubric.',
-      clip: {
-        durationSeconds: input.clip.durationSeconds,
-        windowStartMs: input.clip.windowStartMs,
-        windowDurationMs: input.clip.windowDurationMs,
-        fileName: input.clip.fileName,
-      },
+      task: 'Score this short-form video hook using the HookScore rubric before the creator edits or posts.',
+      source: input.clip?.mode === 'client-trim-window'
+        ? {
+            kind: 'optional_video_context',
+            durationSeconds: input.clip.durationSeconds,
+            windowStartMs: input.clip.windowStartMs,
+            windowDurationMs: input.clip.windowDurationMs,
+          }
+        : {
+            kind: 'text_only_hook_check',
+          },
       context: input.context,
       frameSampling:
-        'Frames are sampled from the selected opening window in chronological order.',
+        input.frames.length > 0
+          ? 'Frames are sampled from the optional opening video context in chronological order.'
+          : 'No image or video frame is attached. Score from the hook, idea, viewer, niche, goal, and first-frame/caption notes only.',
       audioSampling: input.audio
         ? 'A short audio sample from the same opening window is attached. Use it to judge spoken hook clarity, voice energy, music/silence, pacing, and audio-visual fit.'
         : 'No audio sample is attached. Do not infer speech, music, or sound quality beyond the written context.',
@@ -135,14 +193,14 @@ export const buildHookScorePrompt = (input: HookAnalysisInput) =>
           }
         : null,
       outputContract:
-        'Return compact JSON only. Score 0-100. Keep observations and improvements practical.',
+        'Return compact JSON only. Score 0-100. Verdict should be short, e.g. "weak but fixable". Main problem and best fix must each be one sentence. Return exactly 3 rewritten hooks.',
     },
     null,
     2
   );
 
 export const hookScoreSystemInstruction =
-  'You are HookScore, a short-form video hook analyst. Use the sampled frames, any attached audio sample, and user context to judge the first seconds only. Score harshly but practically. Return JSON only.';
+  'You are HookScore, a short-form video hook analyst. Judge the opening from the first spoken line or on-screen text, the creator context, and any optional first-frame context. Do not require video processing. Score harshly but practically. Return JSON only.';
 
 export const stripJsonFence = (value: string) =>
   value
@@ -155,11 +213,18 @@ export const normalizeHookScoreResult = (result: HookScoreApiResult): HookScoreA
   score: clampScore(result.score),
   subscores: {
     clarity: clampScore(result.subscores?.clarity),
-    pace: clampScore(result.subscores?.pace),
-    goalFit: clampScore(result.subscores?.goalFit),
+    specificity: clampScore(result.subscores?.specificity),
+    payoffSpeed: clampScore(result.subscores?.payoffSpeed),
+    curiosity: clampScore(result.subscores?.curiosity),
+    audienceFit: clampScore(result.subscores?.audienceFit),
+    visualTextMatch: clampScore(result.subscores?.visualTextMatch),
+    scrollResistance: clampScore(result.subscores?.scrollResistance),
   },
   goals: normalizeGoals(result.goals),
-  rewrite: normalizeText(result.rewrite),
+  verdict: normalizeText(result.verdict),
+  mainProblem: normalizeText(result.mainProblem),
+  bestFix: normalizeText(result.bestFix),
+  rewrites: normalizeTextList(result.rewrites).slice(0, 3),
   firstFrameText: normalizeText(result.firstFrameText),
   observations: normalizeTextList(result.observations),
   improvements: normalizeTextList(result.improvements),

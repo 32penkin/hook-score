@@ -4,7 +4,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { VideoAnalyzerHistoryItem } from '../../../services/usage/video-analyzer-usage.service';
 import { IconButton } from '../../../shared/components/icon-button.component';
 import { ScreenContainer } from '../../../shared/components/screen-container.component';
-import { radii, spacing, typography } from '../../../shared/theme/theme';
+import { AppColors, radii, spacing, typography } from '../../../shared/theme/theme';
 import { useAppTheme } from '../../../shared/theme/theme.provider';
 import { HookGoal } from '../../../shared/types/video.types';
 
@@ -14,10 +14,9 @@ type HistoryCopy = {
   empty: string;
   back: string;
   itemGoal: string;
-  clipWindow: string;
   loading: string;
   score: string;
-  rewrite: string;
+  bestFix: string;
 };
 
 type HistoryScreenProps = {
@@ -72,37 +71,48 @@ export function HistoryScreen({
           <Text style={[styles.emptyText, { color: colors.textMuted }]}>{copy.empty}</Text>
         </View>
       ) : (
-        records.map((record) => (
-          <View
-            key={record.id}
-            style={[
-              styles.record,
-              { borderColor: colors.border, backgroundColor: colors.surface },
-            ]}
-          >
-            <View style={styles.recordHeader}>
-              <Text style={[styles.fileName, { color: colors.text }]}>{record.clip.fileName}</Text>
-              <Text style={[styles.score, { color: colors.accent }]}>
-                {copy.score}: {record.result.score}
+        records.map((record) => {
+          const scoreColor = getScoreColor(record.result.score, colors);
+          const verdict = record.result.verdict || getFallbackVerdict(record.result.score);
+          const goals = record.result.goals.map((goal) => goalLabels[goal]).join(', ');
+          const bestFix =
+            record.result.bestFix || record.result.rewrite || record.result.improvements?.[0];
+
+          return (
+            <View
+              key={record.id}
+              style={[
+                styles.record,
+                { borderColor: colors.border, backgroundColor: colors.surface },
+              ]}
+            >
+              <View style={styles.recordHeader}>
+                <Text style={[styles.hookTitle, { color: colors.text }]} numberOfLines={2}>
+                  {getHistoryTitle(record)}
+                </Text>
+                <Text style={[styles.score, { color: scoreColor }]}>
+                  {record.result.score}
+                </Text>
+              </View>
+              <Text style={[styles.meta, { color: colors.textMuted }]}>
+                {copy.score} {record.result.score} · {verdict}
               </Text>
+              <Text style={[styles.date, { color: colors.textSubtle }]}>
+                {formatHistoryDate(record.createdAt)} · {copy.itemGoal}: {goals || '-'}
+              </Text>
+              {bestFix ? (
+                <Text style={[styles.hook, { color: colors.textMuted }]} numberOfLines={2}>
+                  {copy.bestFix}: {bestFix}
+                </Text>
+              ) : null}
+              {record.clip.mode === 'client-trim-window' ? (
+                <Text style={[styles.sourceMeta, { color: colors.textSubtle }]} numberOfLines={1}>
+                  {record.clip.fileName}
+                </Text>
+              ) : null}
             </View>
-            <Text style={[styles.meta, { color: colors.accent }]}>
-              {copy.clipWindow}: {Math.round(record.clip.windowStartMs / 1000)}-
-              {Math.round((record.clip.windowStartMs + record.clip.windowDurationMs) / 1000)}s ·{' '}
-              {copy.itemGoal}: {record.result.goals.map((goal) => goalLabels[goal]).join(', ') || '-'}
-            </Text>
-            <Text style={[styles.date, { color: colors.textSubtle }]}>
-              {formatHistoryDate(record.createdAt)}
-            </Text>
-            <Text style={[styles.hook, { color: colors.textMuted }]} numberOfLines={2}>
-              {record.context.hookText || record.context.videoDescription}
-            </Text>
-            <Text style={[styles.rewriteLabel, { color: colors.textSubtle }]}>{copy.rewrite}</Text>
-            <Text style={[styles.hook, { color: colors.textMuted }]} numberOfLines={3}>
-              {record.result.rewrite}
-            </Text>
-          </View>
-        ))
+          );
+        })
       )}
     </ScreenContainer>
   );
@@ -150,39 +160,77 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing.sm,
   },
-  fileName: {
+  hookTitle: {
     flex: 1,
     minWidth: 160,
     fontSize: typography.body,
-    fontWeight: '900',
+    lineHeight: 22,
+    fontWeight: '800',
   },
   score: {
-    fontSize: typography.body,
+    fontSize: typography.h2,
     fontWeight: '900',
   },
   meta: {
     fontSize: typography.small,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   date: {
     fontSize: typography.micro,
-    fontWeight: '800',
-  },
-  rewriteLabel: {
-    marginTop: spacing.xs,
-    fontSize: typography.micro,
-    fontWeight: '900',
-    textTransform: 'uppercase',
+    fontWeight: '700',
   },
   hook: {
     fontSize: typography.small,
     lineHeight: 19,
+  },
+  sourceMeta: {
+    fontSize: typography.micro,
+    lineHeight: 16,
   },
   error: {
     fontSize: typography.small,
     fontWeight: '800',
   },
 });
+
+function getHistoryTitle(record: VideoAnalyzerHistoryItem) {
+  const source = record.context.hookText || record.context.videoDescription || 'Untitled hook';
+  const compact = source.replace(/\s+/g, ' ').trim();
+
+  return compact || 'Untitled hook';
+}
+
+function getScoreColor(score: number, colors: AppColors) {
+  if (score >= 80) {
+    return colors.accent;
+  }
+
+  if (score >= 60) {
+    return colors.amber;
+  }
+
+  if (score >= 40) {
+    return colors.orange;
+  }
+
+  return colors.coral;
+}
+
+function getFallbackVerdict(score: number) {
+  if (score >= 80) {
+    return 'strong hook';
+  }
+
+  if (score >= 60) {
+    return 'promising';
+  }
+
+  if (score >= 40) {
+    return 'weak but fixable';
+  }
+
+  return 'needs a sharper hook';
+}
 
 function formatHistoryDate(value: string) {
   const date = new Date(value);

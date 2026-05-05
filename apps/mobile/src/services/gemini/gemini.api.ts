@@ -105,10 +105,6 @@ export class GeminiClient implements VideoAnalyzerClient {
       throw new Error('Gemini API key is not configured');
     }
 
-    if (input.frames.length === 0) {
-      throw new Error('No video frames were sampled for analysis');
-    }
-
     const model = this.normalizeModelName(this.config.model ?? DEFAULT_GEMINI_MODEL);
     const response = await this.httpClient.post<GeminiGenerateContentResponse>(
       `/models/${encodeURIComponent(model)}:generateContent`,
@@ -176,12 +172,16 @@ export class GeminiClient implements VideoAnalyzerClient {
   ): HookAnalysisResult {
     return {
       id: `analysis-gemini-${Date.now()}`,
-      clipId: input.clip.id,
+      clipId: input.clip?.id ?? `text-hook-${Date.now()}`,
       createdAt: new Date().toISOString(),
       score: result.score,
       subscores: result.subscores,
       goals: result.goals.length > 0 ? result.goals : input.context.goals,
-      rewrite: result.rewrite,
+      verdict: result.verdict,
+      mainProblem: result.mainProblem,
+      bestFix: result.bestFix,
+      rewrites: result.rewrites,
+      rewrite: result.rewrites[0],
       firstFrameText: result.firstFrameText,
       observations: result.observations,
       improvements: result.improvements,

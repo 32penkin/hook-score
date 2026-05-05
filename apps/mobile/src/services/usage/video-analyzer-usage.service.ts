@@ -14,7 +14,7 @@ export type VideoAnalyzerDailyUsage = {
 
 export const VIDEO_ANALYZER_DAILY_LIMIT = 2;
 export const VIDEO_ANALYZER_DAILY_LIMIT_ERROR_MESSAGE =
-  'Daily video analysis limit reached. Try again tomorrow.';
+  'Daily hook check limit reached. Try again tomorrow.';
 
 export type VideoAnalyzerHistoryItem = {
   id: string;
@@ -204,7 +204,7 @@ export class VideoAnalyzerUsageService {
         analysisId: result.id,
         clipId: clip.id,
       });
-      throw new Error('Video analyzer result was not saved');
+      throw new Error('Hook score result was not saved');
     }
 
     const resultRow = row as VideoAnalyzerResultRow;

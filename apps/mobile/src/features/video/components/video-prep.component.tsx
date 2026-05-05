@@ -1,9 +1,9 @@
 import {
-  CheckCircle2,
+  ImagePlus,
   Settings,
   Sparkles,
   Trash2,
-  Upload,
+  Video,
 } from 'lucide-react-native';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
@@ -13,26 +13,23 @@ import { InfoPill } from '../../../shared/components/info-pill.component';
 import { ScreenContainer } from '../../../shared/components/screen-container.component';
 import {
   MultiSegmentedControl,
-  SegmentedControl,
   SegmentOption,
 } from '../../../shared/components/segmented-control.component';
 import { TextField } from '../../../shared/components/text-field.component';
 import { radii, spacing, typography } from '../../../shared/theme/theme';
 import { useAppTheme } from '../../../shared/theme/theme.provider';
 import {
-  ClipDurationSeconds,
   HookContext,
   HookGoal,
   PreparedVideoClip,
   VideoAsset,
 } from '../../../shared/types/video.types';
-import { formatMilliseconds, shortUri } from '../../../shared/utils/format';
+import { formatMilliseconds } from '../../../shared/utils/format';
 
 type VideoPrepCopy = {
   title: string;
   subtitle: string;
   settings: string;
-  clipWindow: string;
   contextTitle: string;
   hookText: string;
   hookTextPlaceholder: string;
@@ -40,14 +37,19 @@ type VideoPrepCopy = {
   descriptionPlaceholder: string;
   audience: string;
   audiencePlaceholder: string;
+  niche: string;
+  nichePlaceholder: string;
   goal: string;
+  optionalSubtitle: string;
+  firstFrameContext: string;
+  firstFrameContextPlaceholder: string;
   pickVideo: string;
   repickVideo: string;
   selected: string;
+  visualContextAdded: string;
   noVideo: string;
   sourceLoading: string;
   ready: string;
-  file: string;
   duration: string;
   analyze: string;
   todayUsage: string;
@@ -59,9 +61,7 @@ type VideoPrepCopy = {
 type VideoPrepScreenProps = {
   copy: VideoPrepCopy;
   userName: string;
-  durationOptions: SegmentOption<ClipDurationSeconds>[];
   goalOptions: SegmentOption<HookGoal>[];
-  selectedDuration: ClipDurationSeconds;
   context: HookContext;
   selectedVideo: VideoAsset | null;
   preparedClip: PreparedVideoClip | null;
@@ -74,8 +74,10 @@ type VideoPrepScreenProps = {
   todayAnalysisCount: number;
   todayAnalysisLimit: number;
   hasReachedDailyAnalysisLimit: boolean;
-  onDurationChange: (duration: ClipDurationSeconds) => void;
-  onContextChange: (field: 'hookText' | 'videoDescription' | 'targetAudience', value: string) => void;
+  onContextChange: (
+    field: 'hookText' | 'videoDescription' | 'targetAudience' | 'niche' | 'firstFrameContext',
+    value: string
+  ) => void;
   onGoalToggle: (goal: HookGoal) => void;
   onPickVideo: () => void;
   onClear: () => void;
@@ -86,9 +88,7 @@ type VideoPrepScreenProps = {
 export function VideoPrepScreen({
   copy,
   userName,
-  durationOptions,
   goalOptions,
-  selectedDuration,
   context,
   selectedVideo,
   preparedClip,
@@ -101,7 +101,6 @@ export function VideoPrepScreen({
   todayAnalysisCount,
   todayAnalysisLimit,
   hasReachedDailyAnalysisLimit,
-  onDurationChange,
   onContextChange,
   onGoalToggle,
   onPickVideo,
@@ -143,27 +142,13 @@ export function VideoPrepScreen({
           { borderColor: colors.border, backgroundColor: colors.surface },
         ]}
       >
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>{copy.clipWindow}</Text>
-        <SegmentedControl
-          disabled={videoActionsDisabled}
-          options={durationOptions}
-          value={selectedDuration}
-          onChange={onDurationChange}
-        />
-      </View>
-
-      <View
-        style={[
-          styles.section,
-          { borderColor: colors.border, backgroundColor: colors.surface },
-        ]}
-      >
         <Text style={[styles.sectionTitle, { color: colors.text }]}>{copy.contextTitle}</Text>
         <TextField
           editable={!videoActionsDisabled}
           label={copy.hookText}
           onChangeText={(value) => onContextChange('hookText', value)}
           placeholder={copy.hookTextPlaceholder}
+          style={styles.hookInput}
           value={context.hookText}
         />
         <TextField
@@ -173,6 +158,13 @@ export function VideoPrepScreen({
           onChangeText={(value) => onContextChange('videoDescription', value)}
           placeholder={copy.descriptionPlaceholder}
           value={context.videoDescription}
+        />
+        <TextField
+          editable={!videoActionsDisabled}
+          label={copy.niche}
+          onChangeText={(value) => onContextChange('niche', value)}
+          placeholder={copy.nichePlaceholder}
+          value={context.niche}
         />
         <TextField
           editable={!videoActionsDisabled}
@@ -197,24 +189,30 @@ export function VideoPrepScreen({
         ]}
       >
         <View style={styles.sectionHeader}>
-          <Upload color={colors.sky} size={18} />
+          <ImagePlus color={colors.sky} size={18} />
           <Text style={[styles.sectionTitle, { color: colors.text }]}>{copy.selected}</Text>
         </View>
+        <Text style={[styles.sectionCopy, { color: colors.textMuted }]}>
+          {copy.optionalSubtitle}
+        </Text>
+
+        <TextField
+          editable={!videoActionsDisabled}
+          label={copy.firstFrameContext}
+          multiline
+          onChangeText={(value) => onContextChange('firstFrameContext', value)}
+          placeholder={copy.firstFrameContextPlaceholder}
+          value={context.firstFrameContext}
+        />
 
         {selectedVideo ? (
           <View style={styles.sourceDetails}>
-            <Text style={[styles.fileName, { color: colors.text }]}>{selectedVideo.fileName}</Text>
-            <Text style={[styles.uri, { color: colors.textSubtle }]} numberOfLines={1}>
-              {shortUri(selectedVideo.uri)}
+            <Text style={[styles.fileName, { color: colors.text }]}>
+              {copy.visualContextAdded}
             </Text>
-            <View style={styles.detailRow}>
-              <Text style={[styles.detailText, { color: colors.textMuted }]}>
-                {copy.duration}: {formatMilliseconds(selectedVideo.durationMs)}
-              </Text>
-              <Text style={[styles.detailText, { color: colors.textMuted }]}>
-                {copy.file}: {selectedVideo.mimeType}
-              </Text>
-            </View>
+            <Text style={[styles.detailText, { color: colors.textMuted }]} numberOfLines={1}>
+              {selectedVideo.fileName} · {copy.duration}: {formatMilliseconds(selectedVideo.durationMs)}
+            </Text>
           </View>
         ) : (
           <Text style={[styles.empty, { color: colors.textSubtle }]}>{copy.noVideo}</Text>
@@ -235,10 +233,10 @@ export function VideoPrepScreen({
         ) : null}
 
         {preparedClip ? (
-          <View style={[styles.readyRow, { backgroundColor: colors.accentDark }]}>
-            <CheckCircle2 color={colors.accent} size={18} />
+          <View style={[styles.readyRow, { backgroundColor: colors.surfaceElevated }]}>
+            <Video color={colors.sky} size={18} />
             <Text style={[styles.readyText, { color: colors.text }]}>
-              {copy.ready} · {copy.clipWindow}: {Math.round(preparedClip.windowDurationMs / 1000)}s
+              {copy.ready}
             </Text>
           </View>
         ) : null}
@@ -253,7 +251,7 @@ export function VideoPrepScreen({
 
         <View style={styles.actions}>
           <AppButton
-            icon={Upload}
+            icon={ImagePlus}
             label={selectedVideo ? copy.repickVideo : copy.pickVideo}
             loading={isPreparing}
             onPress={onPickVideo}
@@ -298,7 +296,7 @@ const styles = StyleSheet.create({
   },
   kicker: {
     fontSize: typography.small,
-    fontWeight: '900',
+    fontWeight: '800',
   },
   title: {
     fontSize: typography.h1,
@@ -326,8 +324,16 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   sectionTitle: {
-    fontSize: typography.h2,
-    fontWeight: '900',
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  sectionCopy: {
+    fontSize: typography.small,
+    lineHeight: 19,
+  },
+  hookInput: {
+    minHeight: 64,
+    fontSize: 18,
   },
   label: {
     fontSize: typography.small,
@@ -339,14 +345,6 @@ const styles = StyleSheet.create({
   fileName: {
     fontSize: typography.body,
     fontWeight: '900',
-  },
-  uri: {
-    fontSize: typography.small,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
   },
   detailText: {
     fontSize: typography.small,
