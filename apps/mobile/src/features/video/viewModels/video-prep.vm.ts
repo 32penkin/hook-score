@@ -12,9 +12,19 @@ import { VideoStore } from '../stores/video.store';
 
 type HookContextTextField = Exclude<keyof HookContext, 'goals'>;
 
+const PROMO_CODE_LENGTH = 16;
+
+const normalizePromoCode = (value: string) =>
+  value.replace(/[^a-z0-9]/gi, '').toUpperCase().slice(0, PROMO_CODE_LENGTH);
+
+const formatPromoCode = (value: string) =>
+  normalizePromoCode(value).replace(/(.{4})(?=.)/g, '$1-');
+
 export class VideoPrepViewModel {
   durationSeconds: ClipDurationSeconds = 3;
   context: HookContext = this.defaultContext;
+  promoCode = '';
+  promoCodeFeedbackKey: TranslationKey | null = null;
   localErrorKey: TranslationKey | null = null;
   isSelectingSource = false;
 
@@ -62,6 +72,10 @@ export class VideoPrepViewModel {
     return this.videoStore.isUsageLoading;
   }
 
+  get isPromoCodeRedeeming() {
+    return this.videoStore.isPromoCodeRedeeming;
+  }
+
   get todayAnalysisCount() {
     return this.videoStore.todayAnalysisCount;
   }
@@ -72,6 +86,22 @@ export class VideoPrepViewModel {
 
   get hasReachedDailyAnalysisLimit() {
     return this.videoStore.hasReachedDailyAnalysisLimit;
+  }
+
+  get canRedeemPromoCode() {
+    return Boolean(
+      this.usageScope === 'authenticated' &&
+        this.hasReachedDailyAnalysisLimit &&
+        normalizePromoCode(this.promoCode).length === PROMO_CODE_LENGTH &&
+        !this.isSourceLoading &&
+        !this.isAnalyzing &&
+        !this.isUsageLoading &&
+        !this.isPromoCodeRedeeming
+    );
+  }
+
+  get promoCodeFeedback() {
+    return this.promoCodeFeedbackKey;
   }
 
   get errorKey() {
@@ -114,6 +144,15 @@ export class VideoPrepViewModel {
     };
   }
 
+  setPromoCode(value: string) {
+    if (this.isAnalyzing || this.isPromoCodeRedeeming) {
+      return;
+    }
+
+    this.promoCode = formatPromoCode(value);
+    this.promoCodeFeedbackKey = null;
+  }
+
   toggleGoal(goal: HookGoal) {
     if (this.isSourceLoading || this.isAnalyzing) {
       return;
@@ -147,6 +186,34 @@ export class VideoPrepViewModel {
     }
 
     return this.videoStore.analyzeHook(this.contextSnapshot, this.usageScope, outputLocale);
+  }
+
+  async redeemPromoCode() {
+    if (this.usageScope !== 'authenticated' || this.isPromoCodeRedeeming) {
+      return false;
+    }
+
+    this.promoCodeFeedbackKey = null;
+    const normalizedCode = normalizePromoCode(this.promoCode);
+
+    if (normalizedCode.length !== PROMO_CODE_LENGTH) {
+      this.promoCodeFeedbackKey = 'video.promoCodeFormatError';
+      return false;
+    }
+
+    const didRedeem = await this.videoStore.redeemPromoCode(normalizedCode);
+
+    runInAction(() => {
+      this.promoCodeFeedbackKey = didRedeem
+        ? 'video.promoCodeRedeemed'
+        : 'video.promoCodeRejected';
+
+      if (didRedeem) {
+        this.promoCode = '';
+      }
+    });
+
+    return didRedeem;
   }
 
   async pickAndPrepareVideo() {

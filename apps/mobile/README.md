@@ -48,7 +48,7 @@ EXPO_PUBLIC_GEMINI_API_KEY=...
 EXPO_PUBLIC_GEMINI_MODEL=gemini-2.5-flash
 ```
 
-OpenAI is still available as a fallback:
+OpenAI is also available:
 
 ```sh
 EXPO_PUBLIC_AI_PROVIDER=openai

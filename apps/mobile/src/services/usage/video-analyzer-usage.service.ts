@@ -24,6 +24,8 @@ export const VIDEO_ANALYZER_GUEST_LIMIT_ERROR_MESSAGE =
   'Free hook check already used. Log in or register to keep analyzing.';
 export const VIDEO_ANALYZER_GUEST_SETUP_ERROR_MESSAGE =
   'Guest hook checks are not enabled in Supabase yet. Apply the latest guest usage migration.';
+export const VIDEO_ANALYZER_PROMO_CODE_SETUP_ERROR_MESSAGE =
+  'Promo code redemption is not enabled in Supabase yet. Apply the latest promo code migration.';
 
 export type VideoAnalyzerHistoryItem = {
   id: string;
@@ -129,6 +131,9 @@ const getClient = () => {
 };
 
 const getFallbackUsageDate = () => new Date().toISOString().slice(0, 10);
+
+const normalizePromoCode = (code: string) =>
+  code.replace(/[^a-z0-9]/gi, '').toUpperCase();
 
 const mapUsageRow = (
   row: VideoAnalyzerUsageRpcRow | null | undefined
@@ -277,6 +282,44 @@ export class VideoAnalyzerUsageService {
     );
 
     logDebug('recordGuestAnalysisUse:success', {
+      usageDate: usage.usageDate,
+      analysisCount: usage.analysisCount,
+    });
+
+    return usage;
+  }
+
+  async redeemPromoCode(code: string): Promise<VideoAnalyzerDailyUsage> {
+    const normalizedCode = normalizePromoCode(code);
+
+    logDebug('redeemPromoCode:start', {
+      codeLength: normalizedCode.length,
+      hasCode: Boolean(normalizedCode),
+    });
+
+    const client = getClient();
+    const { data, error } = await client.rpc('redeem_video_analyzer_promo_code', {
+      p_code: normalizedCode,
+    });
+
+    if (error) {
+      if (isPostgrestFunctionMissingError(error, 'redeem_video_analyzer_promo_code')) {
+        logDebug('redeemPromoCode:schema-missing', {
+          message: VIDEO_ANALYZER_PROMO_CODE_SETUP_ERROR_MESSAGE,
+        });
+
+        throw new Error(VIDEO_ANALYZER_PROMO_CODE_SETUP_ERROR_MESSAGE);
+      }
+
+      logError('redeemPromoCode:error', error);
+      throw error;
+    }
+
+    const usage = mapUsageRpcResponse(
+      data as VideoAnalyzerUsageRpcRow[] | VideoAnalyzerUsageRpcRow | null
+    );
+
+    logDebug('redeemPromoCode:success', {
       usageDate: usage.usageDate,
       analysisCount: usage.analysisCount,
     });

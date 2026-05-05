@@ -1,12 +1,14 @@
 import {
+  Gift,
   ImagePlus,
   LogIn,
+  Mail,
   Settings,
   Sparkles,
   Trash2,
   Video,
 } from 'lucide-react-native';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppButton } from '../../../shared/components/app-button.component';
 import { IconButton } from '../../../shared/components/icon-button.component';
@@ -56,6 +58,14 @@ type VideoPrepCopy = {
   todayUsage: string;
   usageLoading: string;
   dailyLimitReached: string;
+  promoCodeTitle: string;
+  promoCodeHint: string;
+  promoCode: string;
+  promoCodePlaceholder: string;
+  promoCodeHelp: string;
+  promoCodeEmailSubject: string;
+  promoCodeEmailBody: string;
+  redeemPromoCode: string;
   clear: string;
 };
 
@@ -76,16 +86,27 @@ type VideoPrepScreenProps = {
   todayAnalysisCount: number;
   todayAnalysisLimit: number;
   hasReachedDailyAnalysisLimit: boolean;
+  promoCode: string;
+  promoCodeFeedback?: string | null;
+  isPromoCodeRedeeming: boolean;
+  canRedeemPromoCode: boolean;
   onContextChange: (
     field: 'hookText' | 'videoDescription' | 'targetAudience' | 'niche' | 'firstFrameContext',
     value: string
   ) => void;
+  onPromoCodeChange: (value: string) => void;
+  onRedeemPromoCode: () => void;
   onGoalToggle: (goal: HookGoal) => void;
   onPickVideo: () => void;
   onClear: () => void;
   onAnalyze: () => void;
   onOpenSettings: () => void;
 };
+
+const PROMO_CODE_EMAIL = 'penkin.yauhen@gmail.com';
+
+const buildPromoCodeEmailUrl = (subject: string, body: string) =>
+  `mailto:${PROMO_CODE_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
 export function VideoPrepScreen({
   copy,
@@ -104,7 +125,13 @@ export function VideoPrepScreen({
   todayAnalysisCount,
   todayAnalysisLimit,
   hasReachedDailyAnalysisLimit,
+  promoCode,
+  promoCodeFeedback,
+  isPromoCodeRedeeming,
+  canRedeemPromoCode,
   onContextChange,
+  onPromoCodeChange,
+  onRedeemPromoCode,
   onGoalToggle,
   onPickVideo,
   onClear,
@@ -114,6 +141,13 @@ export function VideoPrepScreen({
   const { colors } = useAppTheme();
   const videoActionsDisabled = isSourceLoading || isAnalyzing;
   const HeaderActionIcon = isGuest ? LogIn : Settings;
+  const showPromoCodeEntry = !isGuest && hasReachedDailyAnalysisLimit;
+  const showBasicLimitHint = hasReachedDailyAnalysisLimit && !showPromoCodeEntry;
+  const openPromoCodeEmail = () => {
+    void Linking.openURL(
+      buildPromoCodeEmailUrl(copy.promoCodeEmailSubject, copy.promoCodeEmailBody)
+    ).catch(() => undefined);
+  };
 
   return (
     <ScreenContainer>
@@ -139,6 +173,69 @@ export function VideoPrepScreen({
           value={isUsageLoading ? copy.usageLoading : `${todayAnalysisCount}/${todayAnalysisLimit}`}
         />
       </View>
+
+      {showPromoCodeEntry ? (
+        <View
+          style={[
+            styles.limitPanel,
+            { borderColor: colors.borderStrong, backgroundColor: colors.surfaceElevated },
+          ]}
+        >
+          <View style={styles.limitHeader}>
+            <Gift color={colors.amber} size={18} />
+            <Text style={[styles.limitTitle, { color: colors.text }]}>
+              {copy.promoCodeTitle}
+            </Text>
+          </View>
+          <Text style={[styles.limitCopy, { color: colors.textMuted }]}>
+            {copy.dailyLimitReached}
+          </Text>
+          <Text style={[styles.limitCopy, { color: colors.textMuted }]}>
+            {copy.promoCodeHint}
+          </Text>
+          <TextField
+            autoCapitalize="characters"
+            autoCorrect={false}
+            editable={!isPromoCodeRedeeming && !isAnalyzing && !isUsageLoading}
+            label={copy.promoCode}
+            maxLength={19}
+            onChangeText={onPromoCodeChange}
+            placeholder={copy.promoCodePlaceholder}
+            value={promoCode}
+          />
+          <View style={styles.promoActions}>
+            <AppButton
+              disabled={!canRedeemPromoCode}
+              icon={Gift}
+              label={copy.redeemPromoCode}
+              loading={isPromoCodeRedeeming}
+              onPress={onRedeemPromoCode}
+            />
+          </View>
+          <Pressable
+            accessibilityRole="link"
+            hitSlop={8}
+            onPress={openPromoCodeEmail}
+            style={({ pressed }) => [styles.contactRow, pressed && styles.contactRowPressed]}
+          >
+            <Mail color={colors.textSubtle} size={16} />
+            <Text style={[styles.contactText, { color: colors.textMuted }]}>
+              {copy.promoCodeHelp}
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      {promoCodeFeedback ? (
+        <Text
+          style={[
+            styles.promoFeedback,
+            { color: hasReachedDailyAnalysisLimit ? colors.amber : colors.accent },
+          ]}
+        >
+          {promoCodeFeedback}
+        </Text>
+      ) : null}
 
       <View
         style={[
@@ -275,7 +372,7 @@ export function VideoPrepScreen({
 
         {error ? <Text style={[styles.error, { color: colors.danger }]}>{error}</Text> : null}
 
-        {hasReachedDailyAnalysisLimit ? (
+        {showBasicLimitHint ? (
           <Text style={[styles.limitHint, { color: colors.amber }]}>
             {copy.dailyLimitReached}
           </Text>
@@ -355,6 +452,47 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.16,
     shadowRadius: 22,
     elevation: 3,
+  },
+  limitPanel: {
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    padding: spacing.lg,
+    gap: spacing.md,
+  },
+  limitHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  limitTitle: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  limitCopy: {
+    fontSize: typography.small,
+    lineHeight: 19,
+  },
+  promoActions: {
+    alignSelf: 'flex-start',
+    minWidth: 160,
+  },
+  contactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  contactRowPressed: {
+    opacity: 0.72,
+  },
+  contactText: {
+    flex: 1,
+    fontSize: typography.small,
+    lineHeight: 19,
+  },
+  promoFeedback: {
+    fontSize: typography.small,
+    fontWeight: '800',
   },
   sectionAccent: {
     position: 'absolute',

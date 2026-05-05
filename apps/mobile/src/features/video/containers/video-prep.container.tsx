@@ -85,17 +85,31 @@ export const VideoPrepContainer = observer(function VideoPrepContainer({ navigat
         dailyLimitReached: authStore.isAuthenticated
           ? i18nStore.t('video.dailyLimitReached')
           : i18nStore.t('video.guestLimitReached'),
+        promoCodeTitle: i18nStore.t('video.promoCodeTitle'),
+        promoCodeHint: i18nStore.t('video.promoCodeHint'),
+        promoCode: i18nStore.t('video.promoCode'),
+        promoCodePlaceholder: i18nStore.t('video.promoCodePlaceholder'),
+        promoCodeHelp: i18nStore.t('video.promoCodeHelp'),
+        promoCodeEmailSubject: i18nStore.t('video.promoCodeEmailSubject'),
+        promoCodeEmailBody: i18nStore.t('video.promoCodeEmailBody'),
+        redeemPromoCode: i18nStore.t('video.redeemPromoCode'),
         clear: i18nStore.t('common.clear'),
       }}
       canAnalyze={viewModel.canAnalyze}
+      canRedeemPromoCode={viewModel.canRedeemPromoCode}
       error={viewModel.errorKey ? i18nStore.t(viewModel.errorKey) : viewModel.errorMessage}
       goalOptions={goalOptions}
       isAnalyzing={viewModel.isAnalyzing}
+      isPromoCodeRedeeming={viewModel.isPromoCodeRedeeming}
       isPreparing={viewModel.isSourceLoading}
       isSourceLoading={viewModel.isSourceLoading}
       isUsageLoading={viewModel.isUsageLoading}
       hasReachedDailyAnalysisLimit={viewModel.hasReachedDailyAnalysisLimit}
       preparedClip={viewModel.preparedClip}
+      promoCode={viewModel.promoCode}
+      promoCodeFeedback={
+        viewModel.promoCodeFeedback ? i18nStore.t(viewModel.promoCodeFeedback) : null
+      }
       selectedVideo={viewModel.selectedVideo}
       todayAnalysisCount={viewModel.todayAnalysisCount}
       todayAnalysisLimit={viewModel.todayAnalysisLimit}
@@ -115,6 +129,8 @@ export const VideoPrepContainer = observer(function VideoPrepContainer({ navigat
       onClear={viewModel.clearCurrent}
       onContextChange={viewModel.setContextField}
       onGoalToggle={viewModel.toggleGoal}
+      onPromoCodeChange={viewModel.setPromoCode}
+      onRedeemPromoCode={viewModel.redeemPromoCode}
       onOpenSettings={() =>
         navigation.navigate(authStore.isAuthenticated ? 'Settings' : 'Auth')
       }

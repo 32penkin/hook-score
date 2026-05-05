@@ -39,7 +39,7 @@ type ResponseContentItem =
       detail: 'low' | 'high' | 'auto';
     };
 
-const DEFAULT_OPENAI_MODEL = 'gpt-5.1-codex';
+const DEFAULT_OPENAI_MODEL = 'gpt-5.4-mini';
 
 export class OpenAIClient implements VideoAnalyzerClient {
   constructor(

@@ -64,6 +64,7 @@ export class VideoStore {
   isPreparing = false;
   isAnalyzing = false;
   isUsageLoading = false;
+  isPromoCodeRedeeming = false;
   isHistoryLoading = false;
   error: string | null = null;
 
@@ -322,6 +323,40 @@ export class VideoStore {
     } finally {
       runInAction(() => {
         this.isAnalyzing = false;
+      });
+    }
+  }
+
+  async redeemPromoCode(code: string) {
+    if (this.analysisUsageScope !== 'authenticated') {
+      return false;
+    }
+
+    logDebug('redeemPromoCode:start');
+    this.isPromoCodeRedeeming = true;
+    this.error = null;
+
+    try {
+      const usage = await this.analyzerUsageService.redeemPromoCode(code);
+
+      runInAction(() => {
+        this.dailyAnalysisUsage = usage;
+        this.dailyAnalysisUsageScope = 'authenticated';
+      });
+
+      logDebug('redeemPromoCode:success', {
+        usageDate: usage.usageDate,
+        analysisCount: usage.analysisCount,
+      });
+
+      return true;
+    } catch (error) {
+      logError('redeemPromoCode:error', error);
+
+      return false;
+    } finally {
+      runInAction(() => {
+        this.isPromoCodeRedeeming = false;
       });
     }
   }
