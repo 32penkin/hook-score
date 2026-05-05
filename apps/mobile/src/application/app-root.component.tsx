@@ -1,5 +1,7 @@
+import { useLocales } from 'expo-localization';
 import { StatusBar } from 'expo-status-bar';
 import { observer } from 'mobx-react-lite';
+import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { AppNavigator } from './navigation/app.navigator';
@@ -18,13 +20,20 @@ export function AppRoot() {
 }
 
 const AppRootContent = observer(function AppRootContent() {
-  const { themeStore } = useRootStore();
+  const deviceLocales = useLocales();
+  const { authStore, i18nStore, themeStore } = useRootStore();
   const colors = themeStore.colors;
+  const statusBarStyle =
+    !authStore.isInitialized || themeStore.resolvedScheme === 'dark' ? 'light' : 'dark';
+
+  useEffect(() => {
+    i18nStore.syncDeviceLocales(deviceLocales);
+  }, [deviceLocales, i18nStore]);
 
   return (
     <ThemeProvider value={{ colors, scheme: themeStore.resolvedScheme }}>
       <View style={styles.shell}>
-        <StatusBar style={themeStore.resolvedScheme === 'dark' ? 'light' : 'dark'} />
+        <StatusBar style={statusBarStyle} />
         <AppNavigator />
         {isDevelopmentEnvironment ? (
           <View

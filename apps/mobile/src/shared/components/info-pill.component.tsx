@@ -30,6 +30,7 @@ export function InfoPill({ label, value, tone = 'accent' }: InfoPillProps) {
         },
       ]}
     >
+      <View style={[styles.toneRail, { backgroundColor: toneColor[tone] }]} />
       <Text style={[styles.label, { color: colors.textSubtle }]}>{label}</Text>
       <Text style={[styles.value, { color: toneColor[tone] }]} numberOfLines={1}>
         {value}
@@ -45,7 +46,22 @@ const styles = StyleSheet.create({
     borderRadius: radii.md,
     borderWidth: 1,
     padding: spacing.md,
+    paddingLeft: spacing.lg,
     gap: spacing.xs,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
+    elevation: 2,
+  },
+  toneRail: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    width: 4,
+    borderTopLeftRadius: radii.md,
+    borderBottomLeftRadius: radii.md,
   },
   label: {
     fontSize: typography.micro,

@@ -3,8 +3,11 @@ import { makeAutoObservable, runInAction } from 'mobx';
 import {
   VIDEO_ANALYZER_DAILY_LIMIT,
   VIDEO_ANALYZER_DAILY_LIMIT_ERROR_MESSAGE,
+  VIDEO_ANALYZER_GUEST_LIMIT,
+  VIDEO_ANALYZER_GUEST_LIMIT_ERROR_MESSAGE,
   VideoAnalyzerDailyUsage,
   VideoAnalyzerHistoryItem,
+  VideoAnalyzerUsageScope,
   VideoAnalyzerUsageService,
 } from '../../../services/usage/video-analyzer-usage.service';
 import { VideoAnalyzerClient } from '../../../services/analysis/video-analyzer.client';
@@ -21,6 +24,7 @@ import {
   VideoAsset,
 } from '../../../shared/types/video.types';
 import { isDevelopmentEnvironment } from '../../../shared/config/environment';
+import type { Locale } from '../../../shared/i18n/translations';
 
 const logDebug = (event: string, payload?: Record<string, unknown>) => {
   if (isDevelopmentEnvironment) {
@@ -53,6 +57,8 @@ export class VideoStore {
   preparedClip: PreparedVideoClip | null = null;
   analysisResult: HookAnalysisResult | null = null;
   dailyAnalysisUsage: VideoAnalyzerDailyUsage | null = null;
+  dailyAnalysisUsageScope: VideoAnalyzerUsageScope | null = null;
+  analysisUsageScope: VideoAnalyzerUsageScope = 'authenticated';
   analysisHistory: VideoAnalyzerHistoryItem[] = [];
   history: PreparedClipRecord[] = [];
   isPreparing = false;
@@ -76,11 +82,14 @@ export class VideoStore {
   }
 
   get todayAnalysisLimit() {
-    return VIDEO_ANALYZER_DAILY_LIMIT;
+    return this.getAnalysisLimit(this.analysisUsageScope);
   }
 
   get hasLoadedCurrentDayAnalysisUsage() {
-    return this.dailyAnalysisUsage !== null;
+    return (
+      this.dailyAnalysisUsage !== null &&
+      this.dailyAnalysisUsageScope === this.analysisUsageScope
+    );
   }
 
   get hasReachedDailyAnalysisLimit() {
@@ -93,6 +102,17 @@ export class VideoStore {
       this.preparedClip = null;
       this.analysisResult = null;
     }
+  }
+
+  setAnalysisUsageScope(scope: VideoAnalyzerUsageScope) {
+    if (this.analysisUsageScope === scope) {
+      return;
+    }
+
+    this.analysisUsageScope = scope;
+    this.dailyAnalysisUsage = null;
+    this.dailyAnalysisUsageScope = null;
+    this.error = null;
   }
 
   async prepareSelectedVideo(
@@ -142,19 +162,25 @@ export class VideoStore {
     this.error = null;
   }
 
-  async loadCurrentDayAnalysisUsage() {
-    logDebug('loadCurrentDayAnalysisUsage:start');
+  async loadCurrentDayAnalysisUsage(scope = this.analysisUsageScope) {
+    this.setAnalysisUsageScope(scope);
+
+    logDebug('loadCurrentDayAnalysisUsage:start', { scope });
     this.isUsageLoading = true;
     this.error = null;
 
     try {
-      const usage = await this.analyzerUsageService.getCurrentDayUsage();
+      const usage = await this.analyzerUsageService.getCurrentUsage(scope);
 
       runInAction(() => {
-        this.dailyAnalysisUsage = usage;
+        if (this.analysisUsageScope === scope) {
+          this.dailyAnalysisUsage = usage;
+          this.dailyAnalysisUsageScope = scope;
+        }
       });
 
       logDebug('loadCurrentDayAnalysisUsage:success', {
+        scope,
         usageDate: usage.usageDate,
         analysisCount: usage.analysisCount,
       });
@@ -170,9 +196,15 @@ export class VideoStore {
     }
   }
 
-  async analyzeHook(context: HookContext) {
+  async analyzeHook(
+    context: HookContext,
+    scope = this.analysisUsageScope,
+    outputLocale: Locale = 'en'
+  ) {
+    this.setAnalysisUsageScope(scope);
+
     if (!this.hasLoadedCurrentDayAnalysisUsage) {
-      await this.loadCurrentDayAnalysisUsage();
+      await this.loadCurrentDayAnalysisUsage(scope);
     }
 
     if (!this.hasLoadedCurrentDayAnalysisUsage) {
@@ -186,7 +218,7 @@ export class VideoStore {
         todayAnalysisLimit: this.todayAnalysisLimit,
       });
       runInAction(() => {
-        this.error = VIDEO_ANALYZER_DAILY_LIMIT_ERROR_MESSAGE;
+        this.error = this.getAnalysisLimitErrorMessage(scope);
       });
       return false;
     }
@@ -194,9 +226,11 @@ export class VideoStore {
     const sourceClip = this.preparedClip ?? this.preparationService.buildTextOnlyClip(context);
 
     logDebug('analyzeHook:start', {
+      scope,
       clipId: sourceClip.id,
       sourceMode: sourceClip.mode,
       durationSeconds: sourceClip.durationSeconds,
+      outputLocale,
       goals: context.goals,
       hasHookText: Boolean(context.hookText),
       hasVideoDescription: Boolean(context.videoDescription),
@@ -215,32 +249,48 @@ export class VideoStore {
       const audio = this.preparedClip && this.analyzerClient.supportsAudioInput
         ? await this.audioExtractionService.extractOpeningAudio(this.preparedClip)
         : null;
+      const guestUsage =
+        scope === 'guest' ? await this.analyzerUsageService.recordAnalysisUse('guest') : null;
       const result = await this.analyzerClient.createHookScore({
         clip: sourceClip,
         context,
         frames,
         audio,
+        outputLocale,
       });
-      const savedAnalysis = await this.analyzerUsageService.recordAnalysisResult({
-        result,
-        clip: sourceClip,
-        context,
-      });
+      const savedAnalysis =
+        scope === 'authenticated'
+          ? await this.analyzerUsageService.recordAnalysisResult({
+              result,
+              clip: sourceClip,
+              context,
+            })
+          : null;
+      const usage = savedAnalysis?.usage ?? guestUsage;
+
+      if (!usage) {
+        throw new Error('Video analysis usage failed to update');
+      }
 
       runInAction(() => {
         this.analysisResult = result;
-        this.dailyAnalysisUsage = savedAnalysis.usage;
-        this.analysisHistory = [
-          savedAnalysis.historyItem,
-          ...this.analysisHistory.filter((item) => item.id !== savedAnalysis.historyItem.id),
-        ].slice(0, 30);
+        this.dailyAnalysisUsage = usage;
+        this.dailyAnalysisUsageScope = scope;
+
+        if (savedAnalysis) {
+          this.analysisHistory = [
+            savedAnalysis.historyItem,
+            ...this.analysisHistory.filter((item) => item.id !== savedAnalysis.historyItem.id),
+          ].slice(0, 30);
+        }
       });
 
       logDebug('analyzeHook:success', {
+        scope,
         analysisId: result.id,
         score: result.score,
-        historyId: savedAnalysis.historyItem.id,
-        todayAnalysisCount: savedAnalysis.usage.analysisCount,
+        historyId: savedAnalysis?.historyItem.id,
+        todayAnalysisCount: usage.analysisCount,
         audioSampleIncluded: Boolean(audio),
       });
 
@@ -250,16 +300,21 @@ export class VideoStore {
       const errorMessage = this.getErrorMessage(error, 'Video analysis usage failed to update');
       const isDailyLimitError =
         errorMessage.includes(VIDEO_ANALYZER_DAILY_LIMIT_ERROR_MESSAGE) ||
+        errorMessage.includes(VIDEO_ANALYZER_GUEST_LIMIT_ERROR_MESSAGE) ||
+        errorMessage.includes('Free hook check already used') ||
         errorMessage.includes('Daily video analysis limit reached');
 
       runInAction(() => {
-        this.error = isDailyLimitError ? VIDEO_ANALYZER_DAILY_LIMIT_ERROR_MESSAGE : errorMessage;
+        this.error = isDailyLimitError
+          ? this.getAnalysisLimitErrorMessage(scope)
+          : errorMessage;
 
         if (isDailyLimitError) {
           this.dailyAnalysisUsage = {
             usageDate: this.dailyAnalysisUsage?.usageDate ?? new Date().toISOString().slice(0, 10),
-            analysisCount: this.todayAnalysisLimit,
+            analysisCount: this.getAnalysisLimit(scope),
           };
+          this.dailyAnalysisUsageScope = scope;
         }
       });
 
@@ -305,5 +360,15 @@ export class VideoStore {
 
   private getErrorMessage(error: unknown, fallback: string) {
     return error instanceof Error ? error.message : fallback;
+  }
+
+  private getAnalysisLimitErrorMessage(scope: VideoAnalyzerUsageScope) {
+    return scope === 'guest'
+      ? VIDEO_ANALYZER_GUEST_LIMIT_ERROR_MESSAGE
+      : VIDEO_ANALYZER_DAILY_LIMIT_ERROR_MESSAGE;
+  }
+
+  private getAnalysisLimit(scope: VideoAnalyzerUsageScope) {
+    return scope === 'guest' ? VIDEO_ANALYZER_GUEST_LIMIT : VIDEO_ANALYZER_DAILY_LIMIT;
   }
 }

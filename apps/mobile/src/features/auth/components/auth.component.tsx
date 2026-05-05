@@ -1,4 +1,4 @@
-import { ArrowRight, UserPlus } from 'lucide-react-native';
+import { ArrowRight, Sparkles, UserPlus } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Line, Path, Polygon, Rect } from 'react-native-svg';
 
@@ -26,6 +26,8 @@ type AuthScreenCopy = {
   passwordPlaceholder: string;
   submitLogin: string;
   submitRegister: string;
+  tryAnalyzer: string;
+  tryAnalyzerHint: string;
   accessHint: string;
 };
 
@@ -43,6 +45,7 @@ type AuthScreenProps = {
   onEmailChange: (email: string) => void;
   onPasswordChange: (password: string) => void;
   onSubmit: () => void;
+  onTryAnalyzer: () => void;
 };
 
 export function AuthScreen({
@@ -59,6 +62,7 @@ export function AuthScreen({
   onEmailChange,
   onPasswordChange,
   onSubmit,
+  onTryAnalyzer,
 }: AuthScreenProps) {
   const { colors } = useAppTheme();
   const modeOptions: SegmentOption<AuthMode>[] = [
@@ -80,6 +84,17 @@ export function AuthScreen({
           { borderColor: colors.border, backgroundColor: colors.surface },
         ]}
       >
+        <AppButton
+          disabled={isBusy}
+          icon={Sparkles}
+          label={copy.tryAnalyzer}
+          onPress={onTryAnalyzer}
+          variant="secondary"
+        />
+        <Text style={[styles.guestHint, { color: colors.textSubtle }]}>
+          {copy.tryAnalyzerHint}
+        </Text>
+
         <SegmentedControl options={modeOptions} value={mode} onChange={onModeChange} />
 
         {mode === 'register' ? (
@@ -189,6 +204,10 @@ const styles = StyleSheet.create({
   notice: {
     fontSize: typography.small,
     fontWeight: '800',
+    lineHeight: 18,
+  },
+  guestHint: {
+    fontSize: typography.small,
     lineHeight: 18,
   },
   accessHint: {

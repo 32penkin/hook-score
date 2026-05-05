@@ -43,6 +43,7 @@ export const HistoryContainer = observer(function HistoryContainer({ navigation 
       isLoading={viewModel.isLoading}
       records={viewModel.records}
       onBack={navigation.goBack}
+      onOpenRecord={(record) => navigation.push('AnalysisResult', { historyItemId: record.id })}
     />
   );
 });

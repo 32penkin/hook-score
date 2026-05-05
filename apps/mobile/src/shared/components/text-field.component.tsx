@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { StyleSheet, Text, TextInput, TextInputProps, View } from 'react-native';
 
 import { radii, spacing, typography } from '../theme/theme';
@@ -7,20 +8,31 @@ type TextFieldProps = TextInputProps & {
   label: string;
 };
 
-export function TextField({ label, style, ...props }: TextFieldProps) {
+export function TextField({ label, onBlur, onFocus, style, ...props }: TextFieldProps) {
   const { colors } = useAppTheme();
+  const [isFocused, setIsFocused] = useState(false);
+  const isEditable = props.editable !== false;
 
   return (
     <View style={styles.wrapper}>
       <Text style={[styles.label, { color: colors.textMuted }]}>{label}</Text>
       <TextInput
+        onBlur={(event) => {
+          setIsFocused(false);
+          onBlur?.(event);
+        }}
+        onFocus={(event) => {
+          setIsFocused(true);
+          onFocus?.(event);
+        }}
         placeholderTextColor={colors.textSubtle}
         selectionColor={colors.accent}
         style={[
           styles.input,
           {
-            borderColor: colors.border,
-            backgroundColor: colors.backgroundSoft,
+            borderColor: isFocused && isEditable ? colors.accent : colors.border,
+            backgroundColor:
+              isFocused && isEditable ? colors.surfaceElevated : colors.backgroundSoft,
             color: colors.text,
           },
           props.multiline && styles.multiline,

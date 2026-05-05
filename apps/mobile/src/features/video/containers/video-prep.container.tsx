@@ -1,32 +1,43 @@
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { observer } from 'mobx-react-lite';
 import { useEffect, useMemo } from 'react';
 
-import { AppStackParamList } from '../../../application/navigation/navigation.types';
+import {
+  AppStackParamList,
+  AuthStackParamList,
+} from '../../../application/navigation/navigation.types';
 import { useRootStore } from '../../../application/providers/store.provider';
+import { VideoAnalyzerUsageScope } from '../../../services/usage/video-analyzer-usage.service';
 import { SegmentOption } from '../../../shared/components/segmented-control.component';
 import { HookGoal } from '../../../shared/types/video.types';
 import { VideoPrepScreen } from '../components/video-prep.component';
 import { VideoPrepViewModel } from '../viewModels/video-prep.vm';
 
-type Props = NativeStackScreenProps<AppStackParamList, 'VideoPrep'>;
+type VideoPrepNavigation = {
+  navigate: (screen: keyof (AppStackParamList & AuthStackParamList)) => void;
+};
+
+type Props = {
+  navigation: VideoPrepNavigation;
+};
 
 export const VideoPrepContainer = observer(function VideoPrepContainer({ navigation }: Props) {
   const { authStore, i18nStore, services, videoStore } = useRootStore();
+  const usageScope: VideoAnalyzerUsageScope = authStore.isAuthenticated
+    ? 'authenticated'
+    : 'guest';
   const viewModel = useMemo(
     () =>
       new VideoPrepViewModel(
         videoStore,
-        services.videoPicker
+        services.videoPicker,
+        usageScope
       ),
-    [services.videoPicker, videoStore]
+    [services.videoPicker, usageScope, videoStore]
   );
 
   useEffect(() => {
-    if (authStore.isAuthenticated) {
-      void videoStore.loadCurrentDayAnalysisUsage();
-    }
-  }, [authStore.isAuthenticated, videoStore]);
+    void videoStore.loadCurrentDayAnalysisUsage(usageScope);
+  }, [usageScope, videoStore]);
 
   const goalOptions: SegmentOption<HookGoal>[] = [
     { label: i18nStore.t('goal.views'), value: 'views' },
@@ -42,7 +53,9 @@ export const VideoPrepContainer = observer(function VideoPrepContainer({ navigat
       copy={{
         title: i18nStore.t('video.title'),
         subtitle: i18nStore.t('video.subtitle'),
-        settings: i18nStore.t('common.settings'),
+        settings: authStore.isAuthenticated
+          ? i18nStore.t('common.settings')
+          : i18nStore.t('auth.login'),
         contextTitle: i18nStore.t('video.contextTitle'),
         hookText: i18nStore.t('video.hookText'),
         hookTextPlaceholder: i18nStore.t('video.hookTextPlaceholder'),
@@ -65,9 +78,13 @@ export const VideoPrepContainer = observer(function VideoPrepContainer({ navigat
         ready: i18nStore.t('video.ready'),
         duration: i18nStore.t('video.duration'),
         analyze: i18nStore.t('video.analyze'),
-        todayUsage: i18nStore.t('video.todayUsage'),
+        todayUsage: authStore.isAuthenticated
+          ? i18nStore.t('video.todayUsage')
+          : i18nStore.t('video.guestUsage'),
         usageLoading: i18nStore.t('video.usageLoading'),
-        dailyLimitReached: i18nStore.t('video.dailyLimitReached'),
+        dailyLimitReached: authStore.isAuthenticated
+          ? i18nStore.t('video.dailyLimitReached')
+          : i18nStore.t('video.guestLimitReached'),
         clear: i18nStore.t('common.clear'),
       }}
       canAnalyze={viewModel.canAnalyze}
@@ -82,18 +99,25 @@ export const VideoPrepContainer = observer(function VideoPrepContainer({ navigat
       selectedVideo={viewModel.selectedVideo}
       todayAnalysisCount={viewModel.todayAnalysisCount}
       todayAnalysisLimit={viewModel.todayAnalysisLimit}
-      userName={authStore.userName}
+      userName={
+        authStore.isAuthenticated ? authStore.userName : i18nStore.t('auth.guestUser')
+      }
+      isGuest={!authStore.isAuthenticated}
       onAnalyze={() => {
-        void viewModel.analyzeCurrentVideo().then((didAnalyze) => {
+        void viewModel.analyzeCurrentVideo(i18nStore.locale).then((didAnalyze) => {
           if (didAnalyze) {
-            navigation.navigate('AnalysisResult');
+            navigation.navigate(
+              authStore.isAuthenticated ? 'AnalysisResult' : 'GuestAnalysisResult'
+            );
           }
         });
       }}
       onClear={viewModel.clearCurrent}
       onContextChange={viewModel.setContextField}
       onGoalToggle={viewModel.toggleGoal}
-      onOpenSettings={() => navigation.navigate('Settings')}
+      onOpenSettings={() =>
+        navigation.navigate(authStore.isAuthenticated ? 'Settings' : 'Auth')
+      }
       onPickVideo={viewModel.pickAndPrepareVideo}
     />
   );

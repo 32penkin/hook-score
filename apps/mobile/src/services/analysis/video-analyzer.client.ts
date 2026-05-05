@@ -6,13 +6,17 @@ import {
   VideoAudioSample,
   VideoFrameSample,
 } from '../../shared/types/video.types';
+import type { Locale } from '../../shared/i18n/translations';
 
 export type HookAnalysisInput = {
   clip?: PreparedVideoClip | null;
   context: HookContext;
   frames: VideoFrameSample[];
   audio?: VideoAudioSample | null;
+  outputLocale?: HookScoreOutputLocale;
 };
+
+export type HookScoreOutputLocale = Locale;
 
 export type HookScoreApiResult = {
   score: number;
@@ -47,6 +51,15 @@ export const VALID_HOOK_GOALS: HookGoal[] = [
   'education',
   'comments',
 ];
+
+const hookScoreOutputLanguageNames: Record<HookScoreOutputLocale, string> = {
+  en: 'English',
+  ru: 'Russian',
+  pl: 'Polish',
+};
+
+const getHookScoreOutputLanguageName = (locale: HookScoreOutputLocale = 'en') =>
+  hookScoreOutputLanguageNames[locale] ?? hookScoreOutputLanguageNames.en;
 
 export const hookScoreResponseSchema = {
   type: 'object',
@@ -165,6 +178,12 @@ export const buildHookScorePrompt = (input: HookAnalysisInput) =>
   JSON.stringify(
     {
       task: 'Score this short-form video hook using the HookScore rubric before the creator edits or posts.',
+      outputLanguage: {
+        locale: input.outputLocale ?? 'en',
+        name: getHookScoreOutputLanguageName(input.outputLocale),
+        instruction:
+          'Write verdict, mainProblem, bestFix, rewrites, observations, improvements, and any non-quoted firstFrameText summary in this language. Keep schema enum values, including goals, unchanged. Preserve direct quotes or detected on-screen text in its original language.',
+      },
       source: input.clip?.mode === 'client-trim-window'
         ? {
             kind: 'optional_video_context',
@@ -193,14 +212,14 @@ export const buildHookScorePrompt = (input: HookAnalysisInput) =>
           }
         : null,
       outputContract:
-        'Return compact JSON only. Score 0-100. Verdict should be short, e.g. "weak but fixable". Main problem and best fix must each be one sentence. Return exactly 3 rewritten hooks.',
+        'Return compact JSON only. Score 0-100. Verdict should be short in the requested output language. Main problem and best fix must each be one sentence. Return exactly 3 rewritten hooks.',
     },
     null,
     2
   );
 
 export const hookScoreSystemInstruction =
-  'You are HookScore, a short-form video hook analyst. Judge the opening from the first spoken line or on-screen text, the creator context, and any optional first-frame context. Do not require video processing. Score harshly but practically. Return JSON only.';
+  'You are HookScore, a short-form video hook analyst. Judge the opening from the first spoken line or on-screen text, the creator context, and any optional first-frame context. Do not require video processing. Score harshly but practically. Return JSON only. Follow the requested output language for user-facing analysis text while keeping schema enum values unchanged.';
 
 export const stripJsonFence = (value: string) =>
   value

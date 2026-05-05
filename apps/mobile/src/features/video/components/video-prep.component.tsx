@@ -1,5 +1,6 @@
 import {
   ImagePlus,
+  LogIn,
   Settings,
   Sparkles,
   Trash2,
@@ -71,6 +72,7 @@ type VideoPrepScreenProps = {
   isAnalyzing: boolean;
   isUsageLoading: boolean;
   canAnalyze: boolean;
+  isGuest: boolean;
   todayAnalysisCount: number;
   todayAnalysisLimit: number;
   hasReachedDailyAnalysisLimit: boolean;
@@ -98,6 +100,7 @@ export function VideoPrepScreen({
   isAnalyzing,
   isUsageLoading,
   canAnalyze,
+  isGuest,
   todayAnalysisCount,
   todayAnalysisLimit,
   hasReachedDailyAnalysisLimit,
@@ -110,6 +113,7 @@ export function VideoPrepScreen({
 }: VideoPrepScreenProps) {
   const { colors } = useAppTheme();
   const videoActionsDisabled = isSourceLoading || isAnalyzing;
+  const HeaderActionIcon = isGuest ? LogIn : Settings;
 
   return (
     <ScreenContainer>
@@ -120,7 +124,7 @@ export function VideoPrepScreen({
         </View>
         <IconButton
           disabled={videoActionsDisabled}
-          icon={Settings}
+          icon={HeaderActionIcon}
           label={copy.settings}
           onPress={onOpenSettings}
         />
@@ -142,6 +146,10 @@ export function VideoPrepScreen({
           { borderColor: colors.border, backgroundColor: colors.surface },
         ]}
       >
+        <View
+          pointerEvents="none"
+          style={[styles.sectionAccent, { backgroundColor: colors.accent }]}
+        />
         <Text style={[styles.sectionTitle, { color: colors.text }]}>{copy.contextTitle}</Text>
         <TextField
           editable={!videoActionsDisabled}
@@ -188,6 +196,10 @@ export function VideoPrepScreen({
           { borderColor: colors.border, backgroundColor: colors.surface },
         ]}
       >
+        <View
+          pointerEvents="none"
+          style={[styles.sectionAccent, { backgroundColor: colors.sky }]}
+        />
         <View style={styles.sectionHeader}>
           <ImagePlus color={colors.sky} size={18} />
           <Text style={[styles.sectionTitle, { color: colors.text }]}>{copy.selected}</Text>
@@ -206,16 +218,36 @@ export function VideoPrepScreen({
         />
 
         {selectedVideo ? (
-          <View style={styles.sourceDetails}>
-            <Text style={[styles.fileName, { color: colors.text }]}>
-              {copy.visualContextAdded}
-            </Text>
-            <Text style={[styles.detailText, { color: colors.textMuted }]} numberOfLines={1}>
-              {selectedVideo.fileName} · {copy.duration}: {formatMilliseconds(selectedVideo.durationMs)}
-            </Text>
+          <View
+            style={[
+              styles.sourceCard,
+              { borderColor: colors.border, backgroundColor: colors.backgroundSoft },
+            ]}
+          >
+            <View style={[styles.sourceIcon, { backgroundColor: colors.accentDark }]}>
+              <Video color={colors.accent} size={20} />
+            </View>
+            <View style={styles.sourceDetails}>
+              <Text style={[styles.fileName, { color: colors.text }]}>
+                {copy.visualContextAdded}
+              </Text>
+              <Text style={[styles.detailText, { color: colors.textMuted }]} numberOfLines={1}>
+                {selectedVideo.fileName} · {copy.duration}: {formatMilliseconds(selectedVideo.durationMs)}
+              </Text>
+            </View>
           </View>
         ) : (
-          <Text style={[styles.empty, { color: colors.textSubtle }]}>{copy.noVideo}</Text>
+          <View
+            style={[
+              styles.sourceCard,
+              { borderColor: colors.border, backgroundColor: colors.backgroundSoft },
+            ]}
+          >
+            <View style={[styles.sourceIcon, { backgroundColor: colors.surfaceMuted }]}>
+              <Video color={colors.textSubtle} size={20} />
+            </View>
+            <Text style={[styles.empty, { color: colors.textSubtle }]}>{copy.noVideo}</Text>
+          </View>
         )}
 
         {isSourceLoading ? (
@@ -313,10 +345,25 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   section: {
+    position: 'relative',
     borderRadius: radii.lg,
     borderWidth: 1,
     padding: spacing.lg,
     gap: spacing.lg,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.16,
+    shadowRadius: 22,
+    elevation: 3,
+  },
+  sectionAccent: {
+    position: 'absolute',
+    top: 0,
+    left: spacing.lg,
+    width: 64,
+    height: 3,
+    borderBottomLeftRadius: 3,
+    borderBottomRightRadius: 3,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -339,7 +386,25 @@ const styles = StyleSheet.create({
     fontSize: typography.small,
     fontWeight: '700',
   },
+  sourceCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: radii.md,
+    borderWidth: 1,
+    padding: spacing.md,
+    gap: spacing.md,
+  },
+  sourceIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
   sourceDetails: {
+    flex: 1,
+    minWidth: 0,
     gap: spacing.sm,
   },
   fileName: {
@@ -350,6 +415,7 @@ const styles = StyleSheet.create({
     fontSize: typography.small,
   },
   empty: {
+    flex: 1,
     fontSize: typography.body,
   },
   loadingRow: {

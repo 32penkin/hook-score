@@ -1,6 +1,7 @@
-import { ComponentType } from 'react';
+import { ComponentType, useRef } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   Pressable,
   StyleSheet,
   Text,
@@ -37,61 +38,84 @@ export function AppButton({
   style,
 }: AppButtonProps) {
   const { colors } = useAppTheme();
+  const scale = useRef(new Animated.Value(1)).current;
   const isPrimary = variant === 'primary';
   const isGhost = variant === 'ghost';
   const textColor = isPrimary ? colors.black : colors.text;
+  const isDisabled = disabled || loading;
+
+  const animateScale = (value: number) => {
+    Animated.spring(scale, {
+      bounciness: 4,
+      speed: 24,
+      toValue: value,
+      useNativeDriver: true,
+    }).start();
+  };
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      disabled={disabled || loading}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.button,
-        isPrimary && { backgroundColor: colors.accent, borderColor: colors.accent },
-        variant === 'secondary' && {
-          backgroundColor: colors.surfaceElevated,
-          borderColor: colors.border,
-        },
-        isGhost && { backgroundColor: 'transparent', borderColor: colors.border },
-        (pressed || disabled) && styles.dimmed,
-        style,
-      ]}
-    >
-      {loading ? (
-        <ActivityIndicator color={textColor} />
-      ) : (
-        <View style={styles.content}>
-          {Icon ? <Icon color={textColor} size={18} strokeWidth={2.4} /> : null}
-          <Text style={[styles.label, { color: textColor }]} numberOfLines={1}>
-            {label}
-          </Text>
-        </View>
-      )}
-    </Pressable>
+    <Animated.View style={[style, { transform: [{ scale }] }]}>
+      <Pressable
+        accessibilityRole="button"
+        disabled={isDisabled}
+        onPress={onPress}
+        onPressIn={() => animateScale(0.98)}
+        onPressOut={() => animateScale(1)}
+        style={({ pressed }) => [
+          styles.button,
+          isPrimary && { backgroundColor: colors.accent, borderColor: colors.accent },
+          variant === 'secondary' && {
+            backgroundColor: pressed ? colors.surfaceMuted : colors.surfaceElevated,
+            borderColor: pressed ? colors.borderStrong : colors.border,
+          },
+          isGhost && { backgroundColor: 'transparent', borderColor: colors.border },
+          (pressed || disabled) && styles.dimmed,
+        ]}
+      >
+        {loading ? (
+          <ActivityIndicator color={textColor} />
+        ) : (
+          <View style={styles.content}>
+            {Icon ? <Icon color={textColor} size={18} strokeWidth={2.4} /> : null}
+            <Text style={[styles.label, { color: textColor }]} numberOfLines={1}>
+              {label}
+            </Text>
+          </View>
+        )}
+      </Pressable>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   button: {
+    width: '100%',
     minHeight: 48,
     borderRadius: radii.md,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.lg,
     borderWidth: 1,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.16,
+    shadowRadius: 14,
+    elevation: 2,
   },
   dimmed: {
     opacity: 0.72,
   },
   content: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
   },
   label: {
+    flexShrink: 1,
     fontSize: typography.body,
     fontWeight: '800',
+    textAlign: 'center',
   },
 });

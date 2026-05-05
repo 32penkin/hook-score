@@ -1,15 +1,29 @@
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { observer } from 'mobx-react-lite';
 
-import { AppStackParamList } from '../../../application/navigation/navigation.types';
 import { useRootStore } from '../../../application/providers/store.provider';
 import { HookGoal } from '../../../shared/types/video.types';
 import { AnalysisResultScreen } from '../components/analysis-result.component';
 
-type Props = NativeStackScreenProps<AppStackParamList, 'AnalysisResult'>;
+type Props = {
+  navigation: {
+    goBack: () => void;
+  };
+  route: {
+    params?: {
+      historyItemId?: string;
+    };
+  };
+};
 
-export const AnalysisResultContainer = observer(function AnalysisResultContainer({ navigation }: Props) {
+export const AnalysisResultContainer = observer(function AnalysisResultContainer({
+  navigation,
+  route,
+}: Props) {
   const { i18nStore, videoStore } = useRootStore();
+  const historyResult = route.params?.historyItemId
+    ? videoStore.analysisHistory.find((item) => item.id === route.params?.historyItemId)?.result
+    : null;
+  const result = route.params?.historyItemId ? historyResult ?? null : videoStore.analysisResult;
   const goalLabels: Record<HookGoal, string> = {
     views: i18nStore.t('goal.views'),
     trust: i18nStore.t('goal.trust'),
@@ -45,7 +59,7 @@ export const AnalysisResultContainer = observer(function AnalysisResultContainer
         nextSteps: i18nStore.t('analysis.nextSteps'),
       }}
       goalLabels={goalLabels}
-      result={videoStore.analysisResult}
+      result={result}
       onBack={navigation.goBack}
     />
   );

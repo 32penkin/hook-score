@@ -1,10 +1,9 @@
 import { DarkTheme, NavigationContainer } from '@react-navigation/native';
 import { observer } from 'mobx-react-lite';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { enableScreens } from 'react-native-screens';
 
-import { spacing } from '../../shared/theme/theme';
 import { useAppTheme } from '../../shared/theme/theme.provider';
+import { SplashScreen } from '../components/splash-screen.component';
 import { useRootStore } from '../providers/store.provider';
 
 import { AuthNavigator } from './auth.navigator';
@@ -29,25 +28,17 @@ export const AppNavigator = observer(function AppNavigator() {
   };
 
   return (
-    <NavigationContainer theme={navigationTheme}>
+    <NavigationContainer
+      key={authStore.isAuthenticated ? 'authenticated-navigation' : 'guest-navigation'}
+      theme={navigationTheme}
+    >
       {!authStore.isInitialized ? (
-        <View style={styles.loadingScreen}>
-          <ActivityIndicator color={colors.accent} />
-        </View>
+        <SplashScreen />
       ) : authStore.isAuthenticated ? (
-        <MainNavigator />
+        <MainNavigator key="authenticated" />
       ) : (
-        <AuthNavigator />
+        <AuthNavigator key="guest" />
       )}
     </NavigationContainer>
   );
-});
-
-const styles = StyleSheet.create({
-  loadingScreen: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.lg,
-  },
 });

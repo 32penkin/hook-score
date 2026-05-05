@@ -102,6 +102,7 @@ function ResultContent({
   const verdict = result.verdict || getFallbackVerdict(result.score);
   const rewrites = getRewriteOptions(result);
   const goals = result.goals.map((goal) => goalLabels[goal]).join(', ');
+  const normalizedScore = clampScore(result.score);
 
   return (
     <>
@@ -111,10 +112,22 @@ function ResultContent({
           { borderColor: colors.border, backgroundColor: colors.surface },
         ]}
       >
+        <View
+          pointerEvents="none"
+          style={[styles.scoreAccent, { backgroundColor: scoreColor }]}
+        />
         <Text style={[styles.scoreLabel, { color: colors.textSubtle }]}>{copy.score}</Text>
         <View style={styles.scoreLine}>
           <Text style={[styles.scoreValue, { color: scoreColor }]}>{result.score}</Text>
           <Text style={[styles.verdict, { color: colors.text }]}>- {verdict}</Text>
+        </View>
+        <View style={[styles.scoreTrack, { backgroundColor: colors.surfaceMuted }]}>
+          <View
+            style={[
+              styles.scoreFill,
+              { backgroundColor: scoreColor, width: `${normalizedScore}%` },
+            ]}
+          />
         </View>
         <Text style={[styles.metaText, { color: colors.textMuted }]}>
           {copy.selectedGoals}: {goals || '-'}
@@ -268,6 +281,7 @@ function ScoreTile({
   const { colors } = useAppTheme();
   const hasValue = typeof value === 'number';
   const valueColor = hasValue ? getScoreColor(value, colors) : colors.textSubtle;
+  const normalizedValue = hasValue ? clampScore(value) : 0;
 
   return (
     <View
@@ -279,6 +293,14 @@ function ScoreTile({
       <Icon color={colors.sky} size={18} />
       <Text style={[styles.tileLabel, { color: colors.textMuted }]}>{label}</Text>
       <Text style={[styles.tileValue, { color: valueColor }]}>{hasValue ? value : '-'}</Text>
+      <View style={[styles.tileTrack, { backgroundColor: colors.surfaceMuted }]}>
+        <View
+          style={[
+            styles.tileFill,
+            { backgroundColor: valueColor, width: `${normalizedValue}%` },
+          ]}
+        />
+      </View>
     </View>
   );
 }
@@ -308,6 +330,10 @@ function getRewriteOptions(result: HookAnalysisResult) {
   }
 
   return [];
+}
+
+function clampScore(score: number) {
+  return Math.max(0, Math.min(100, score));
 }
 
 export function getScoreColor(score: number, colors: AppColors) {
@@ -362,6 +388,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.md,
     padding: spacing.xl,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.14,
+    shadowRadius: 22,
+    elevation: 3,
   },
   emptyText: {
     fontSize: typography.body,
@@ -369,10 +400,25 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   scorePanel: {
+    position: 'relative',
     borderRadius: radii.lg,
     borderWidth: 1,
     padding: spacing.lg,
     gap: spacing.md,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    elevation: 4,
+  },
+  scoreAccent: {
+    position: 'absolute',
+    top: 0,
+    left: spacing.lg,
+    width: 78,
+    height: 4,
+    borderBottomLeftRadius: 4,
+    borderBottomRightRadius: 4,
   },
   scoreLabel: {
     fontSize: typography.micro,
@@ -401,6 +447,15 @@ const styles = StyleSheet.create({
     fontSize: typography.small,
     lineHeight: 19,
   },
+  scoreTrack: {
+    height: 8,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  scoreFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
   insightGrid: {
     gap: spacing.sm,
   },
@@ -409,6 +464,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: spacing.lg,
     gap: spacing.md,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    elevation: 2,
   },
   insightLabel: {
     fontSize: typography.micro,
@@ -425,6 +485,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: spacing.lg,
     gap: spacing.md,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    elevation: 2,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -476,6 +541,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: spacing.md,
     gap: spacing.sm,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 14,
+    elevation: 1,
   },
   tileLabel: {
     fontSize: typography.micro,
@@ -485,6 +555,15 @@ const styles = StyleSheet.create({
   tileValue: {
     fontSize: typography.h2,
     fontWeight: '900',
+  },
+  tileTrack: {
+    height: 5,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  tileFill: {
+    height: '100%',
+    borderRadius: 3,
   },
   detailGroup: {
     gap: spacing.sm,

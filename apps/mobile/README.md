@@ -113,3 +113,5 @@ Recommended Supabase project setup:
 Video analyzer usage is stored in `public.video_analyzer_daily_usage` through the migration in `supabase/migrations`. The app calls `get_current_video_analyzer_usage()` when the video prep screen opens. Counts are grouped by authenticated Supabase user and UTC calendar day.
 
 Analyzer result history is stored in `public.video_analyzer_results`. After each successful analysis, the app calls `record_video_analyzer_result(...)`, which saves the result and increments the daily usage counter in the same database transaction. The History screen reads the authenticated user's saved results through Supabase RLS.
+
+Guest analyzer access uses `public.video_analyzer_guest_usage` and the `get_guest_video_analyzer_usage(...)` / `record_guest_video_analyzer_use(...)` RPCs from the latest migration. It stores only an app-generated device UUID and usage count; guest analyzer results are not persisted in Supabase.

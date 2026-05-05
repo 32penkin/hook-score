@@ -7,14 +7,23 @@ import {
 import { appConfig } from '../../shared/config/environment';
 import { stringifyForLog } from '../api/api-logger';
 
+import { GuestDeviceIdentityService } from './guest-device-identity.service';
+
 export type VideoAnalyzerDailyUsage = {
   usageDate: string;
   analysisCount: number;
 };
 
+export type VideoAnalyzerUsageScope = 'authenticated' | 'guest';
+
 export const VIDEO_ANALYZER_DAILY_LIMIT = 2;
+export const VIDEO_ANALYZER_GUEST_LIMIT = 1;
 export const VIDEO_ANALYZER_DAILY_LIMIT_ERROR_MESSAGE =
   'Daily hook check limit reached. Try again tomorrow.';
+export const VIDEO_ANALYZER_GUEST_LIMIT_ERROR_MESSAGE =
+  'Free hook check already used. Log in or register to keep analyzing.';
+export const VIDEO_ANALYZER_GUEST_SETUP_ERROR_MESSAGE =
+  'Guest hook checks are not enabled in Supabase yet. Apply the latest guest usage migration.';
 
 export type VideoAnalyzerHistoryItem = {
   id: string;
@@ -89,6 +98,21 @@ const getErrorLogPayload = (error: unknown) => {
   return { error };
 };
 
+const isPostgrestFunctionMissingError = (error: unknown, functionName: string) => {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  const errorRecord = error as Record<string, unknown>;
+  const message = typeof errorRecord.message === 'string' ? errorRecord.message : '';
+  const details = typeof errorRecord.details === 'string' ? errorRecord.details : '';
+
+  return (
+    errorRecord.code === 'PGRST202' &&
+    (message.includes(functionName) || details.includes(functionName))
+  );
+};
+
 const getClient = () => {
   if (!supabase) {
     logError('Supabase client is not configured', {
@@ -127,6 +151,20 @@ const mapHistoryRow = (row: VideoAnalyzerResultRow): VideoAnalyzerHistoryItem =>
 });
 
 export class VideoAnalyzerUsageService {
+  constructor(
+    private readonly guestDeviceIdentityService = new GuestDeviceIdentityService()
+  ) {}
+
+  async getCurrentUsage(
+    scope: VideoAnalyzerUsageScope
+  ): Promise<VideoAnalyzerDailyUsage> {
+    if (scope === 'guest') {
+      return this.getCurrentGuestUsage();
+    }
+
+    return this.getCurrentDayUsage();
+  }
+
   async getCurrentDayUsage(): Promise<VideoAnalyzerDailyUsage> {
     logDebug('getCurrentDayUsage:start');
     const client = getClient();
@@ -149,7 +187,49 @@ export class VideoAnalyzerUsageService {
     return usage;
   }
 
-  async recordAnalysisUse(): Promise<VideoAnalyzerDailyUsage> {
+  async getCurrentGuestUsage(): Promise<VideoAnalyzerDailyUsage> {
+    logDebug('getCurrentGuestUsage:start');
+    const client = getClient();
+    const deviceId = await this.guestDeviceIdentityService.getDeviceId();
+    const { data, error } = await client.rpc('get_guest_video_analyzer_usage', {
+      p_device_id: deviceId,
+    });
+
+    if (error) {
+      if (isPostgrestFunctionMissingError(error, 'get_guest_video_analyzer_usage')) {
+        logDebug('getCurrentGuestUsage:schema-missing', {
+          message: VIDEO_ANALYZER_GUEST_SETUP_ERROR_MESSAGE,
+        });
+
+        return {
+          usageDate: getFallbackUsageDate(),
+          analysisCount: 0,
+        };
+      }
+
+      logError('getCurrentGuestUsage:error', error);
+      throw error;
+    }
+
+    const usage = mapUsageRpcResponse(
+      data as VideoAnalyzerUsageRpcRow[] | VideoAnalyzerUsageRpcRow | null
+    );
+
+    logDebug('getCurrentGuestUsage:success', {
+      usageDate: usage.usageDate,
+      analysisCount: usage.analysisCount,
+    });
+
+    return usage;
+  }
+
+  async recordAnalysisUse(
+    scope: VideoAnalyzerUsageScope = 'authenticated'
+  ): Promise<VideoAnalyzerDailyUsage> {
+    if (scope === 'guest') {
+      return this.recordGuestAnalysisUse();
+    }
+
     logDebug('recordAnalysisUse:start');
     const client = getClient();
     const { data, error } = await client.rpc('record_video_analyzer_use');
@@ -164,6 +244,39 @@ export class VideoAnalyzerUsageService {
     );
 
     logDebug('recordAnalysisUse:success', {
+      usageDate: usage.usageDate,
+      analysisCount: usage.analysisCount,
+    });
+
+    return usage;
+  }
+
+  async recordGuestAnalysisUse(): Promise<VideoAnalyzerDailyUsage> {
+    logDebug('recordGuestAnalysisUse:start');
+    const client = getClient();
+    const deviceId = await this.guestDeviceIdentityService.getDeviceId();
+    const { data, error } = await client.rpc('record_guest_video_analyzer_use', {
+      p_device_id: deviceId,
+    });
+
+    if (error) {
+      if (isPostgrestFunctionMissingError(error, 'record_guest_video_analyzer_use')) {
+        logDebug('recordGuestAnalysisUse:schema-missing', {
+          message: VIDEO_ANALYZER_GUEST_SETUP_ERROR_MESSAGE,
+        });
+
+        throw new Error(VIDEO_ANALYZER_GUEST_SETUP_ERROR_MESSAGE);
+      }
+
+      logError('recordGuestAnalysisUse:error', error);
+      throw error;
+    }
+
+    const usage = mapUsageRpcResponse(
+      data as VideoAnalyzerUsageRpcRow[] | VideoAnalyzerUsageRpcRow | null
+    );
+
+    logDebug('recordGuestAnalysisUse:success', {
       usageDate: usage.usageDate,
       analysisCount: usage.analysisCount,
     });

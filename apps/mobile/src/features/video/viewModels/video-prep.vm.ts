@@ -1,7 +1,8 @@
 import { makeAutoObservable, runInAction } from 'mobx';
 
 import { ExpoVideoPickerService } from '../../../services/video/expo-video-picker.service';
-import { TranslationKey } from '../../../shared/i18n/translations';
+import { VideoAnalyzerUsageScope } from '../../../services/usage/video-analyzer-usage.service';
+import { Locale, TranslationKey } from '../../../shared/i18n/translations';
 import {
   ClipDurationSeconds,
   HookContext,
@@ -30,8 +31,10 @@ export class VideoPrepViewModel {
 
   constructor(
     private readonly videoStore: VideoStore,
-    private readonly pickerService: ExpoVideoPickerService
+    private readonly pickerService: ExpoVideoPickerService,
+    private readonly usageScope: VideoAnalyzerUsageScope
   ) {
+    this.videoStore.setAnalysisUsageScope(usageScope);
     makeAutoObservable(this, {}, { autoBind: true });
   }
 
@@ -126,7 +129,7 @@ export class VideoPrepViewModel {
     };
   }
 
-  async analyzeCurrentVideo() {
+  async analyzeCurrentVideo(outputLocale: Locale = 'en') {
     if (this.isSourceLoading || this.isAnalyzing) {
       return false;
     }
@@ -138,11 +141,12 @@ export class VideoPrepViewModel {
     }
 
     if (this.hasReachedDailyAnalysisLimit) {
-      this.localErrorKey = 'video.dailyLimitReached';
+      this.localErrorKey =
+        this.usageScope === 'guest' ? 'video.guestLimitReached' : 'video.dailyLimitReached';
       return false;
     }
 
-    return this.videoStore.analyzeHook(this.contextSnapshot);
+    return this.videoStore.analyzeHook(this.contextSnapshot, this.usageScope, outputLocale);
   }
 
   async pickAndPrepareVideo() {

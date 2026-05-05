@@ -1,5 +1,5 @@
-import { ArrowLeft, Clock3 } from 'lucide-react-native';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ArrowLeft, ChevronRight, Clock3 } from 'lucide-react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { VideoAnalyzerHistoryItem } from '../../../services/usage/video-analyzer-usage.service';
 import { IconButton } from '../../../shared/components/icon-button.component';
@@ -26,6 +26,7 @@ type HistoryScreenProps = {
   error?: string | null;
   goalLabels: Record<HookGoal, string>;
   onBack: () => void;
+  onOpenRecord: (record: VideoAnalyzerHistoryItem) => void;
 };
 
 export function HistoryScreen({
@@ -35,6 +36,7 @@ export function HistoryScreen({
   error,
   goalLabels,
   onBack,
+  onOpenRecord,
 }: HistoryScreenProps) {
   const { colors } = useAppTheme();
 
@@ -79,20 +81,27 @@ export function HistoryScreen({
             record.result.bestFix || record.result.rewrite || record.result.improvements?.[0];
 
           return (
-            <View
+            <Pressable
               key={record.id}
-              style={[
+              accessibilityLabel={`${getHistoryTitle(record)}, ${copy.score} ${record.result.score}`}
+              accessibilityRole="button"
+              onPress={() => onOpenRecord(record)}
+              style={({ pressed }) => [
                 styles.record,
                 { borderColor: colors.border, backgroundColor: colors.surface },
+                pressed ? styles.recordPressed : null,
               ]}
             >
               <View style={styles.recordHeader}>
                 <Text style={[styles.hookTitle, { color: colors.text }]} numberOfLines={2}>
                   {getHistoryTitle(record)}
                 </Text>
-                <Text style={[styles.score, { color: scoreColor }]}>
-                  {record.result.score}
-                </Text>
+                <View style={styles.scoreGroup}>
+                  <Text style={[styles.score, { color: scoreColor }]}>
+                    {record.result.score}
+                  </Text>
+                  <ChevronRight color={colors.textSubtle} size={18} />
+                </View>
               </View>
               <Text style={[styles.meta, { color: colors.textMuted }]}>
                 {copy.score} {record.result.score} · {verdict}
@@ -110,7 +119,7 @@ export function HistoryScreen({
                   {record.clip.fileName}
                 </Text>
               ) : null}
-            </View>
+            </Pressable>
           );
         })
       )}
@@ -153,6 +162,9 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     gap: spacing.sm,
   },
+  recordPressed: {
+    opacity: 0.7,
+  },
   recordHeader: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -170,6 +182,12 @@ const styles = StyleSheet.create({
   score: {
     fontSize: typography.h2,
     fontWeight: '900',
+  },
+  scoreGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    flexShrink: 0,
   },
   meta: {
     fontSize: typography.small,
