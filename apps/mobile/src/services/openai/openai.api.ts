@@ -2,6 +2,7 @@ import { HttpClient } from '../api/http.api';
 import {
   buildHookScorePrompt,
   HookAnalysisInput,
+  HookScoreAnalysisResponse,
   HookScoreApiResult,
   hookScoreResponseSchema,
   hookScoreSystemInstruction,
@@ -91,7 +92,7 @@ export class OpenAIClient implements VideoAnalyzerClient {
     };
   }
 
-  async createHookScore(input: HookAnalysisInput): Promise<HookAnalysisResult> {
+  async createHookScore(input: HookAnalysisInput): Promise<HookScoreAnalysisResponse> {
     if (!this.config.apiKey) {
       throw new Error('OpenAI API key is not configured');
     }
@@ -105,7 +106,9 @@ export class OpenAIClient implements VideoAnalyzerClient {
 
     const parsedResult = this.parseHookScoreResponse(response);
 
-    return this.toHookAnalysisResult(parsedResult, input, response.id);
+    return {
+      result: this.toHookAnalysisResult(parsedResult, input, response.id),
+    };
   }
 
   private parseHookScoreResponse(response: OpenAIResponsesApiResponse): HookScoreApiResult {

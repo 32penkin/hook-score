@@ -261,24 +261,28 @@ export class VideoStore {
       const audio = this.preparedClip && this.analyzerClient.supportsAudioInput
         ? await this.audioExtractionService.extractOpeningAudio(this.preparedClip)
         : null;
-      const result = await this.analyzerClient.createHookScore({
+      const analysis = await this.analyzerClient.createHookScore({
         clip: sourceClip,
         context,
         frames,
         audio,
         outputLocale,
+        usageScope: scope,
       });
+      const result = analysis.result;
       const guestUsage =
-        scope === 'guest' ? await this.analyzerUsageService.recordAnalysisUse('guest') : null;
+        !analysis.usage && scope === 'guest'
+          ? await this.analyzerUsageService.recordAnalysisUse('guest')
+          : null;
       const savedAnalysis =
-        scope === 'authenticated'
+        !analysis.usage && scope === 'authenticated'
           ? await this.analyzerUsageService.recordAnalysisResult({
               result,
               clip: sourceClip,
               context,
             })
           : null;
-      const usage = savedAnalysis?.usage ?? guestUsage;
+      const usage = analysis.usage ?? savedAnalysis?.usage ?? guestUsage;
 
       if (!usage) {
         throw new Error('Video analysis usage failed to update');
@@ -289,10 +293,12 @@ export class VideoStore {
         this.dailyAnalysisUsage = usage;
         this.dailyAnalysisUsageScope = scope;
 
-        if (savedAnalysis) {
+        const historyItem = analysis.historyItem ?? savedAnalysis?.historyItem;
+
+        if (historyItem) {
           this.analysisHistory = [
-            savedAnalysis.historyItem,
-            ...this.analysisHistory.filter((item) => item.id !== savedAnalysis.historyItem.id),
+            historyItem,
+            ...this.analysisHistory.filter((item) => item.id !== historyItem.id),
           ].slice(0, 30);
         }
       });
@@ -301,7 +307,7 @@ export class VideoStore {
         scope,
         analysisId: result.id,
         score: result.score,
-        historyId: savedAnalysis?.historyItem.id,
+        historyId: analysis.historyItem?.id ?? savedAnalysis?.historyItem.id,
         todayAnalysisCount: usage.analysisCount,
         audioSampleIncluded: Boolean(audio),
       });

@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HookScore Privacy Policy</title>
+    <meta
+      name="description"
+      content="HookScore privacy policy covering Supabase auth, selected video processing, AI providers, history, guest UUIDs, retention, deletion, and contact details."
+    />
+    <link rel="stylesheet" href="../assets/styles.css" />
+  </head>
+  <body>
+    <div class="site-shell">
+      <main class="page">
+        <header class="topbar" aria-label="Site header">
+          <a class="brand" href="../" aria-label="HookScore legal home">
+            <span class="mark" aria-hidden="true"></span>
+            <span class="brand-name">HookScore</span>
+          </a>
+          <nav class="nav" aria-label="Legal pages">
+            <a href="../">Legal Home</a>
+            <a href="../account-deletion/">Account Deletion</a>
+            <a href="hookscore://">Open App</a>
+          </nav>
+        </header>
+
+        <article class="policy">
+          <p class="eyebrow">Privacy Policy</p>
+          <h1>HookScore Privacy Policy</h1>
+          <p class="meta">Last updated: May 6, 2026</p>
+          <p class="lede">
+            This policy explains what HookScore collects and processes when you create an
+            account, use a free guest check, or ask the app to score a short-form video hook.
+          </p>
+
+          <h2>Information We Collect</h2>
+          <h3>Account and Supabase auth data</h3>
+          <p>
+            HookScore uses Supabase for authentication. When you register or log in, Supabase
+            processes your email address, password authentication data, Supabase user identifier,
+            session identifiers, and the name you provide during registration. HookScore uses that
+            information to create your account, keep you signed in, and associate saved hook
+            checks with your account.
+          </p>
+
+          <h3>Hook check content</h3>
+          <p>
+            When you score a hook, HookScore processes the text and context you enter, including
+            the hook text, video description, target audience, niche, selected goals, selected
+            output language, and score results returned by the analyzer.
+          </p>
+
+          <h3>Selected video, frame, and audio processing</h3>
+          <p>
+            Adding a video is optional. If you select a video, HookScore samples the opening
+            window you choose, currently three to five seconds. The app extracts still frames from
+            that opening window and sends those image samples to the configured AI provider. On
+            web builds, if the configured provider supports audio input, the app may also extract
+            a short WAV audio sample from the same opening window and send it to that provider.
+          </p>
+          <p>
+            HookScore stores video metadata for authenticated history, such as filename, MIME
+            type, local source URI, selected opening window, preparation time, and duration.
+            HookScore does not store the raw selected video file, extracted frame images, or
+            extracted audio samples in its Supabase history tables.
+          </p>
+
+          <h3>Usage and history storage</h3>
+          <p>
+            For authenticated users, HookScore stores daily usage counts and saved hook history in
+            Supabase. Saved history includes the analysis result, score, goals, model metadata,
+            hook context, selected clip metadata, and timestamps. Guest checks are not saved to
+            account history.
+          </p>
+
+          <h3>Guest device UUID</h3>
+          <p>
+            If you use the free guest check, HookScore creates a random device UUID and stores it
+            locally on your device. On web, it is stored in browser local storage. On native
+            builds, it is stored in secure device storage. Supabase stores that UUID with guest
+            usage count, first seen time, and last used time so HookScore can enforce the guest
+            check limit.
+          </p>
+
+          <h2>AI Provider Usage</h2>
+          <p>
+            HookScore can be configured to use Google Gemini or OpenAI. Depending on the build,
+            the app sends analyzer requests either directly to the configured provider or through a
+            Supabase Edge Function that calls the provider with server-side credentials. The
+            selected provider receives the hook text and context you enter, sampled frames from an
+            optional selected video, and, when supported and available, a short audio sample from
+            the selected opening window. The provider returns structured analysis, scores,
+            observations, and rewrite suggestions.
+          </p>
+          <p>
+            AI provider processing is governed by the provider's own terms and privacy practices.
+            HookScore sends only the information needed to generate the hook score.
+          </p>
+
+          <h2>How We Use Information</h2>
+          <ul>
+            <li>Authenticate accounts and keep sessions active.</li>
+            <li>Generate hook scores, observations, and rewrite suggestions.</li>
+            <li>Show saved history for authenticated accounts.</li>
+            <li>Apply authenticated daily limits, guest limits, and promo-code usage.</li>
+            <li>Debug service reliability and protect against misuse.</li>
+          </ul>
+
+          <h2>Retention and Deletion</h2>
+          <p>
+            Authenticated hook history and daily usage records are retained while your account
+            remains active, unless you ask for deletion. Guest UUID usage records are retained as
+            needed to enforce the one-time guest check limit. Local guest UUID storage remains on
+            your device until you clear app data, clear browser storage, or request deletion where
+            HookScore can match the UUID.
+          </p>
+          <p>
+            You can delete your HookScore account and saved history from Settings in the app.
+            If you cannot sign in, you can request deletion of your account data or guest usage
+            record by emailing the contact address below. Some provider-side logs or backups may
+            remain for a limited period according to Supabase, Google, or OpenAI retention
+            practices.
+          </p>
+
+          <h2>Contact</h2>
+          <p class="section-note">
+            For privacy questions or deletion requests, email
+            <a href="mailto:penkin.yauhen@gmail.com">penkin.yauhen@gmail.com</a>.
+          </p>
+        </article>
+      </main>
+    </div>
+  </body>
+</html>

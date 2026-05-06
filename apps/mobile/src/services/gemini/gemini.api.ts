@@ -2,6 +2,7 @@ import { HttpClient } from '../api/http.api';
 import {
   buildHookScorePrompt,
   HookAnalysisInput,
+  HookScoreAnalysisResponse,
   HookScoreApiResult,
   hookScoreResponseSchema,
   hookScoreSystemInstruction,
@@ -100,7 +101,7 @@ export class GeminiClient implements VideoAnalyzerClient {
     };
   }
 
-  async createHookScore(input: HookAnalysisInput): Promise<HookAnalysisResult> {
+  async createHookScore(input: HookAnalysisInput): Promise<HookScoreAnalysisResponse> {
     if (!this.config.apiKey) {
       throw new Error('Gemini API key is not configured');
     }
@@ -118,7 +119,9 @@ export class GeminiClient implements VideoAnalyzerClient {
 
     const parsedResult = this.parseHookScoreResponse(response);
 
-    return this.toHookAnalysisResult(parsedResult, input, model);
+    return {
+      result: this.toHookAnalysisResult(parsedResult, input, model),
+    };
   }
 
   private parseHookScoreResponse(response: GeminiGenerateContentResponse): HookScoreApiResult {

@@ -1,9 +1,11 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { observer } from 'mobx-react-lite';
 import { useMemo } from 'react';
+import { Linking } from 'react-native';
 
 import { AuthStackParamList } from '../../../application/navigation/navigation.types';
 import { useRootStore } from '../../../application/providers/store.provider';
+import { appConfig } from '../../../shared/config/environment';
 import { AuthScreen } from '../components/auth.component';
 import { AuthViewModel } from '../viewModels/auth.vm';
 
@@ -31,6 +33,7 @@ export const AuthContainer = observer(function AuthContainer({ navigation }: Pro
         tryAnalyzer: i18nStore.t('auth.tryAnalyzer'),
         tryAnalyzerHint: i18nStore.t('auth.tryAnalyzerHint'),
         accessHint: i18nStore.t('auth.accessHint'),
+        privacyPolicy: i18nStore.t('common.privacyPolicy'),
       }}
       email={viewModel.email}
       error={viewModel.errorKey ? i18nStore.t(viewModel.errorKey) : authStore.error}
@@ -43,6 +46,9 @@ export const AuthContainer = observer(function AuthContainer({ navigation }: Pro
       onModeChange={viewModel.setMode}
       onNameChange={viewModel.setName}
       onPasswordChange={viewModel.setPassword}
+      onOpenPrivacyPolicy={() => {
+        void Linking.openURL(appConfig.privacyPolicyUrl).catch(() => undefined);
+      }}
       onSubmit={viewModel.submit}
       onTryAnalyzer={() => navigation.navigate('GuestVideoPrep')}
     />

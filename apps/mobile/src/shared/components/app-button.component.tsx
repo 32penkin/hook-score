@@ -24,6 +24,7 @@ type AppButtonProps = {
   icon?: ComponentType<IconProps>;
   disabled?: boolean;
   loading?: boolean;
+  tone?: 'default' | 'danger';
   variant?: 'primary' | 'secondary' | 'ghost';
   style?: ViewStyle;
 };
@@ -34,6 +35,7 @@ export function AppButton({
   icon: Icon,
   disabled,
   loading,
+  tone = 'default',
   variant = 'primary',
   style,
 }: AppButtonProps) {
@@ -41,7 +43,8 @@ export function AppButton({
   const scale = useRef(new Animated.Value(1)).current;
   const isPrimary = variant === 'primary';
   const isGhost = variant === 'ghost';
-  const textColor = isPrimary ? colors.black : colors.text;
+  const isDanger = tone === 'danger';
+  const textColor = isPrimary ? colors.black : isDanger ? colors.danger : colors.text;
   const isDisabled = disabled || loading;
 
   const animateScale = (value: number) => {
@@ -66,9 +69,16 @@ export function AppButton({
           isPrimary && { backgroundColor: colors.accent, borderColor: colors.accent },
           variant === 'secondary' && {
             backgroundColor: pressed ? colors.surfaceMuted : colors.surfaceElevated,
-            borderColor: pressed ? colors.borderStrong : colors.border,
+            borderColor: isDanger
+              ? colors.danger
+              : pressed
+                ? colors.borderStrong
+                : colors.border,
           },
-          isGhost && { backgroundColor: 'transparent', borderColor: colors.border },
+          isGhost && {
+            backgroundColor: 'transparent',
+            borderColor: isDanger ? colors.danger : colors.border,
+          },
           (pressed || disabled) && styles.dimmed,
         ]}
       >

@@ -1,5 +1,5 @@
 import { ArrowRight, Sparkles, UserPlus } from 'lucide-react-native';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Line, Path, Polygon, Rect } from 'react-native-svg';
 
 import { AppButton } from '../../../shared/components/app-button.component';
@@ -29,6 +29,7 @@ type AuthScreenCopy = {
   tryAnalyzer: string;
   tryAnalyzerHint: string;
   accessHint: string;
+  privacyPolicy: string;
 };
 
 type AuthScreenProps = {
@@ -46,6 +47,7 @@ type AuthScreenProps = {
   onPasswordChange: (password: string) => void;
   onSubmit: () => void;
   onTryAnalyzer: () => void;
+  onOpenPrivacyPolicy: () => void;
 };
 
 export function AuthScreen({
@@ -63,6 +65,7 @@ export function AuthScreen({
   onPasswordChange,
   onSubmit,
   onTryAnalyzer,
+  onOpenPrivacyPolicy,
 }: AuthScreenProps) {
   const { colors } = useAppTheme();
   const modeOptions: SegmentOption<AuthMode>[] = [
@@ -135,6 +138,15 @@ export function AuthScreen({
         />
 
         <Text style={[styles.accessHint, { color: colors.textSubtle }]}>{copy.accessHint}</Text>
+        <Pressable
+          accessibilityRole="link"
+          onPress={onOpenPrivacyPolicy}
+          style={({ pressed }) => [styles.privacyLink, pressed && styles.linkPressed]}
+        >
+          <Text style={[styles.privacyLinkText, { color: colors.sky }]}>
+            {copy.privacyPolicy}
+          </Text>
+        </Pressable>
       </View>
     </ScreenContainer>
   );
@@ -213,5 +225,18 @@ const styles = StyleSheet.create({
   accessHint: {
     fontSize: typography.small,
     lineHeight: 18,
+  },
+  privacyLink: {
+    alignSelf: 'center',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  privacyLinkText: {
+    fontSize: typography.small,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  linkPressed: {
+    opacity: 0.72,
   },
 });

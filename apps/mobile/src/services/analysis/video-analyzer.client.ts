@@ -14,9 +14,11 @@ export type HookAnalysisInput = {
   frames: VideoFrameSample[];
   audio?: VideoAudioSample | null;
   outputLocale?: HookScoreOutputLocale;
+  usageScope?: HookScoreUsageScope;
 };
 
 export type HookScoreOutputLocale = Locale;
+export type HookScoreUsageScope = 'authenticated' | 'guest';
 
 export type HookScoreApiResult = {
   score: number;
@@ -41,7 +43,27 @@ export type HookScoreApiResult = {
 
 export type VideoAnalyzerClient = {
   supportsAudioInput?: boolean;
-  createHookScore(input: HookAnalysisInput): Promise<HookAnalysisResult>;
+  createHookScore(input: HookAnalysisInput): Promise<HookScoreAnalysisResponse>;
+};
+
+export type HookScoreAnalysisUsage = {
+  usageDate: string;
+  analysisCount: number;
+};
+
+export type HookScoreAnalysisHistoryItem = {
+  id: string;
+  usageDate: string;
+  createdAt: string;
+  result: HookAnalysisResult;
+  clip: PreparedVideoClip;
+  context: HookContext;
+};
+
+export type HookScoreAnalysisResponse = {
+  result: HookAnalysisResult;
+  usage?: HookScoreAnalysisUsage;
+  historyItem?: HookScoreAnalysisHistoryItem;
 };
 
 export const VALID_HOOK_GOALS: HookGoal[] = [

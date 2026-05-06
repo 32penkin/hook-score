@@ -12,8 +12,11 @@ export class AuthStore {
   hasSession = false;
   isInitialized = false;
   isLoading = false;
+  isAccountDeletionRequesting = false;
   error: string | null = null;
   noticeKey: TranslationKey | null = null;
+  accountDeletionError: string | null = null;
+  accountDeletionNoticeKey: TranslationKey | null = null;
 
   constructor(private readonly authService: AuthService) {
     makeAutoObservable(this, {}, { autoBind: true });
@@ -110,6 +113,8 @@ export class AuthStore {
     this.isLoading = true;
     this.error = null;
     this.noticeKey = null;
+    this.accountDeletionError = null;
+    this.accountDeletionNoticeKey = null;
 
     try {
       await this.authService.logout();
@@ -127,9 +132,56 @@ export class AuthStore {
     }
   }
 
+  async requestAccountDeletion() {
+    this.isAccountDeletionRequesting = true;
+    this.accountDeletionError = null;
+    this.accountDeletionNoticeKey = null;
+
+    try {
+      await this.authService.requestAccountDeletion();
+      runInAction(() => {
+        this.accountDeletionNoticeKey = 'settings.accountDeletionRequested';
+      });
+    } catch (error) {
+      runInAction(() => {
+        this.accountDeletionError =
+          error instanceof Error ? error.message : 'Account deletion request failed';
+      });
+    } finally {
+      runInAction(() => {
+        this.isAccountDeletionRequesting = false;
+      });
+    }
+  }
+
+  async deleteAccount() {
+    this.isAccountDeletionRequesting = true;
+    this.accountDeletionError = null;
+    this.accountDeletionNoticeKey = null;
+
+    try {
+      await this.authService.deleteAccount();
+      runInAction(() => {
+        this.applyAuthState({ hasSession: false, user: null });
+        this.noticeKey = 'auth.accountDeleted';
+      });
+    } catch (error) {
+      runInAction(() => {
+        this.accountDeletionError =
+          error instanceof Error ? error.message : 'Account deletion failed';
+      });
+    } finally {
+      runInAction(() => {
+        this.isAccountDeletionRequesting = false;
+      });
+    }
+  }
+
   clearError() {
     this.error = null;
     this.noticeKey = null;
+    this.accountDeletionError = null;
+    this.accountDeletionNoticeKey = null;
   }
 
   dispose() {

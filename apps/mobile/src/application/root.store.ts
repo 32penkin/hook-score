@@ -3,6 +3,7 @@ import { VideoStore } from '../features/video/stores/video.store';
 import { AuthService } from '../services/auth/auth.service';
 import { HttpClient } from '../services/api/http.api';
 import { VideoAnalyzerClient } from '../services/analysis/video-analyzer.client';
+import { SupabaseVideoAnalyzerClient } from '../services/analysis/supabase-video-analyzer.client';
 import { GeminiClient } from '../services/gemini/gemini.api';
 import { OpenAIClient } from '../services/openai/openai.api';
 import { VideoAnalyzerUsageService } from '../services/usage/video-analyzer-usage.service';
@@ -29,6 +30,7 @@ export class RootStore {
       retry: { maxAttempts: 3 },
     }),
     analyzer: null as VideoAnalyzerClient | null,
+    supabaseAnalyzer: null as SupabaseVideoAnalyzerClient | null,
     gemini: null as GeminiClient | null,
     openAi: null as OpenAIClient | null,
     videoAudioExtraction: new VideoAudioExtractionService(),
@@ -50,9 +52,13 @@ export class RootStore {
       apiKey: appConfig.openAiApiKey,
       model: appConfig.openAiModel,
     });
-    const analyzerClient =
+    const supabaseAnalyzerClient = new SupabaseVideoAnalyzerClient(appConfig.aiProvider);
+    const directAnalyzerClient =
       appConfig.aiProvider === 'openai' ? openAiClient : geminiClient;
+    const analyzerClient =
+      appConfig.aiTransport === 'direct' ? directAnalyzerClient : supabaseAnalyzerClient;
 
+    this.services.supabaseAnalyzer = supabaseAnalyzerClient;
     this.services.gemini = geminiClient;
     this.services.openAi = openAiClient;
     this.services.analyzer = analyzerClient;

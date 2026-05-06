@@ -9,6 +9,29 @@ import { configureSupabaseAutoRefresh, supabase } from './supabase.client';
 type AuthStateListener = (state: AuthState) => void;
 type AuthErrorListener = (error: unknown) => void;
 
+type AccountDeletionRequestStatus = 'pending' | 'completed' | 'cancelled';
+
+type AccountDeletionRequestRow = {
+  id: string;
+  email: string;
+  status: AccountDeletionRequestStatus;
+  requested_at: string;
+  updated_at: string;
+};
+
+type SupabaseFunctionError = {
+  context?: Response;
+  message?: string;
+};
+
+export type AccountDeletionRequest = {
+  id: string;
+  email: string;
+  status: AccountDeletionRequestStatus;
+  requestedAt: string;
+  updatedAt: string;
+};
+
 const NATIVE_AUTH_REDIRECT_URL = 'hookscore://auth/callback';
 
 const getUserName = (user: User) => {
@@ -30,6 +53,16 @@ const mapUser = (user: User): AuthUser => ({
 const mapSession = (session: Session | null): AuthState => ({
   hasSession: Boolean(session?.access_token),
   user: session?.user ? mapUser(session.user) : null,
+});
+
+const mapAccountDeletionRequest = (
+  row: AccountDeletionRequestRow
+): AccountDeletionRequest => ({
+  id: row.id,
+  email: row.email,
+  status: row.status,
+  requestedAt: row.requested_at,
+  updatedAt: row.updated_at,
 });
 
 const getClient = () => {
@@ -72,6 +105,23 @@ const scrubBrowserAuthParams = () => {
   }
 
   window.history.replaceState(null, document.title, window.location.pathname);
+};
+
+const normalizeFunctionError = async (error: SupabaseFunctionError) => {
+  const context = error.context;
+
+  if (context) {
+    try {
+      const body = await context.json();
+      const message = typeof body?.error === 'string' ? body.error : error.message;
+
+      return new Error(message ?? 'Request failed');
+    } catch {
+      return new Error(error.message ?? 'Request failed');
+    }
+  }
+
+  return error instanceof Error ? error : new Error(error.message ?? 'Request failed');
 };
 
 export class AuthService {
@@ -195,6 +245,42 @@ export class AuthService {
 
     if (error) {
       throw error;
+    }
+  }
+
+  async requestAccountDeletion(): Promise<AccountDeletionRequest> {
+    const client = getClient();
+    const { data, error } = await client.rpc('request_account_deletion');
+
+    if (error) {
+      throw error;
+    }
+
+    const row = Array.isArray(data) ? data[0] : data;
+
+    if (!row) {
+      throw new Error('Account deletion request was not saved');
+    }
+
+    return mapAccountDeletionRequest(row as AccountDeletionRequestRow);
+  }
+
+  async deleteAccount(): Promise<void> {
+    const client = getClient();
+    const { error } = await client.functions.invoke(appConfig.accountDeletionFunctionName, {
+      body: {
+        confirm: true,
+      },
+    });
+
+    if (error) {
+      throw await normalizeFunctionError(error);
+    }
+
+    const { error: signOutError } = await client.auth.signOut({ scope: 'local' });
+
+    if (signOutError) {
+      console.warn('[AuthService] Local sign out after account deletion failed', signOutError);
     }
   }
 

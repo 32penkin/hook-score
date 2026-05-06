@@ -1,5 +1,6 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { observer } from 'mobx-react-lite';
+import { Alert, Linking } from 'react-native';
 
 import { AppStackParamList } from '../../../application/navigation/navigation.types';
 import { useRootStore } from '../../../application/providers/store.provider';
@@ -24,6 +25,23 @@ export const SettingsContainer = observer(function SettingsContainer({ navigatio
     { label: i18nStore.t('theme.light'), value: 'light' },
     { label: i18nStore.t('theme.dark'), value: 'dark' },
   ];
+  const confirmAccountDeletion = () => {
+    Alert.alert(
+      i18nStore.t('settings.deleteAccountConfirmTitle'),
+      i18nStore.t('settings.deleteAccountConfirmMessage'),
+      [
+        {
+          text: i18nStore.t('common.cancel'),
+          style: 'cancel',
+        },
+        {
+          text: i18nStore.t('settings.deleteAccountConfirmAction'),
+          style: 'destructive',
+          onPress: authStore.deleteAccount,
+        },
+      ]
+    );
+  };
 
   return (
     <SettingsScreen
@@ -33,19 +51,37 @@ export const SettingsContainer = observer(function SettingsContainer({ navigatio
         back: i18nStore.t('common.back'),
         history: i18nStore.t('video.history'),
         logout: i18nStore.t('common.logout'),
+        privacyPolicy: i18nStore.t('common.privacyPolicy'),
         language: i18nStore.t('settings.language'),
         theme: i18nStore.t('settings.theme'),
-        environment: i18nStore.t('settings.environment'),
+        deleteAccount: i18nStore.t('settings.deleteAccount'),
+        accountSignedInAs: i18nStore.t('settings.accountSignedInAs'),
+        accountDeletionDescription: i18nStore.t('settings.accountDeletionDescription'),
+        deleteAccountNow: i18nStore.t('settings.deleteAccountNow'),
+        openAccountDeletionUrl: i18nStore.t('settings.openAccountDeletionUrl'),
       }}
-      environmentName={appConfig.environment}
-      environmentMessage={appConfig.environmentMessage}
+      userEmail={authStore.user?.email ?? null}
       locale={i18nStore.locale}
       localeOptions={localeOptions}
       themeMode={themeStore.mode}
       themeOptions={themeOptions}
+      accountDeletionError={authStore.accountDeletionError}
+      accountDeletionNotice={
+        authStore.accountDeletionNoticeKey
+          ? i18nStore.t(authStore.accountDeletionNoticeKey)
+          : null
+      }
+      isAccountDeletionRequesting={authStore.isAccountDeletionRequesting}
       onBack={navigation.goBack}
       onLocaleChange={i18nStore.setLocale}
       onOpenHistory={() => navigation.navigate('History')}
+      onOpenPrivacyPolicy={() => {
+        void Linking.openURL(appConfig.privacyPolicyUrl).catch(() => undefined);
+      }}
+      onOpenAccountDeletionUrl={() => {
+        void Linking.openURL(appConfig.accountDeletionUrl).catch(() => undefined);
+      }}
+      onDeleteAccount={confirmAccountDeletion}
       onLogout={authStore.logout}
       onThemeModeChange={themeStore.setMode}
     />

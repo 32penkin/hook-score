@@ -1,4 +1,13 @@
-import { ArrowLeft, History, Languages, LogOut, Moon, Server, Sun } from 'lucide-react-native';
+import {
+  ArrowLeft,
+  ExternalLink,
+  History,
+  Languages,
+  LogOut,
+  Moon,
+  Sun,
+  Trash2,
+} from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { AppButton } from '../../../shared/components/app-button.component';
@@ -18,38 +27,53 @@ type SettingsCopy = {
   back: string;
   history: string;
   logout: string;
+  privacyPolicy: string;
   language: string;
   theme: string;
-  environment: string;
+  deleteAccount: string;
+  accountSignedInAs: string;
+  accountDeletionDescription: string;
+  deleteAccountNow: string;
+  openAccountDeletionUrl: string;
 };
 
 type SettingsScreenProps = {
   copy: SettingsCopy;
-  environmentName: string;
-  environmentMessage: string;
+  userEmail: string | null;
   locale: Locale;
   localeOptions: SegmentOption<Locale>[];
   themeMode: ThemeMode;
   themeOptions: SegmentOption<ThemeMode>[];
+  accountDeletionError?: string | null;
+  accountDeletionNotice?: string | null;
+  isAccountDeletionRequesting: boolean;
   onLocaleChange: (locale: Locale) => void;
   onThemeModeChange: (mode: ThemeMode) => void;
   onBack: () => void;
   onOpenHistory: () => void;
+  onOpenPrivacyPolicy: () => void;
+  onOpenAccountDeletionUrl: () => void;
+  onDeleteAccount: () => void;
   onLogout: () => void;
 };
 
 export function SettingsScreen({
   copy,
-  environmentName,
-  environmentMessage,
+  userEmail,
   locale,
   localeOptions,
   themeMode,
   themeOptions,
+  accountDeletionError,
+  accountDeletionNotice,
+  isAccountDeletionRequesting,
   onLocaleChange,
   onThemeModeChange,
   onBack,
   onOpenHistory,
+  onOpenPrivacyPolicy,
+  onOpenAccountDeletionUrl,
+  onDeleteAccount,
   onLogout,
 }: SettingsScreenProps) {
   const { colors } = useAppTheme();
@@ -101,19 +125,51 @@ export function SettingsScreen({
         ]}
       >
         <View style={styles.sectionHeader}>
-          <Server color={colors.accent} size={18} />
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>{copy.environment}</Text>
+          <Trash2 color={colors.danger} size={18} />
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{copy.deleteAccount}</Text>
         </View>
-        <View style={styles.environmentValue}>
-          <Text style={[styles.environmentName, { color: colors.text }]}>{environmentName}</Text>
-          <Text style={[styles.environmentMessage, { color: colors.textMuted }]}>
-            {environmentMessage}
+        <View style={styles.accountBody}>
+          {userEmail ? (
+            <Text style={[styles.accountEmail, { color: colors.textMuted }]}>
+              {copy.accountSignedInAs}: {userEmail}
+            </Text>
+          ) : null}
+          <Text style={[styles.accountDescription, { color: colors.textMuted }]}>
+            {copy.accountDeletionDescription}
           </Text>
+          {accountDeletionNotice ? (
+            <Text style={[styles.notice, { color: colors.accent }]}>
+              {accountDeletionNotice}
+            </Text>
+          ) : null}
+          {accountDeletionError ? (
+            <Text style={[styles.error, { color: colors.danger }]}>{accountDeletionError}</Text>
+          ) : null}
+          <AppButton
+            icon={Trash2}
+            label={copy.deleteAccountNow}
+            loading={isAccountDeletionRequesting}
+            onPress={onDeleteAccount}
+            tone="danger"
+            variant="secondary"
+          />
+          <AppButton
+            icon={ExternalLink}
+            label={copy.openAccountDeletionUrl}
+            onPress={onOpenAccountDeletionUrl}
+            variant="ghost"
+          />
         </View>
       </View>
 
       <View style={styles.footer}>
         <AppButton icon={History} label={copy.history} onPress={onOpenHistory} variant="secondary" />
+        <AppButton
+          icon={ExternalLink}
+          label={copy.privacyPolicy}
+          onPress={onOpenPrivacyPolicy}
+          variant="secondary"
+        />
         <AppButton icon={LogOut} label={copy.logout} onPress={onLogout} variant="secondary" />
       </View>
     </ScreenContainer>
@@ -150,17 +206,26 @@ const styles = StyleSheet.create({
     fontSize: typography.h2,
     fontWeight: '900',
   },
-  environmentValue: {
-    gap: spacing.xs,
+  accountBody: {
+    gap: spacing.md,
   },
-  environmentName: {
-    fontSize: typography.body,
-    fontWeight: '800',
-    textTransform: 'capitalize',
-  },
-  environmentMessage: {
+  accountEmail: {
     fontSize: typography.small,
     lineHeight: 18,
+  },
+  accountDescription: {
+    fontSize: typography.small,
+    lineHeight: 20,
+  },
+  notice: {
+    fontSize: typography.small,
+    fontWeight: '800',
+    lineHeight: 20,
+  },
+  error: {
+    fontSize: typography.small,
+    fontWeight: '800',
+    lineHeight: 20,
   },
   footer: {
     marginTop: 'auto',
