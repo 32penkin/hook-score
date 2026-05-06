@@ -6,7 +6,7 @@ HookScore is a lightweight creator tool that evaluates the first 3 seconds of a 
 
 The product is not a viral-content oracle. It does not promise views. It checks whether the opening has the mechanics that usually make a TikTok, Reel, or Short easier to understand and harder to skip.
 
-> Paste the hook, describe the video, optionally add the first-frame screenshot, and get a score plus stronger rewrites.
+> Paste the hook, describe the video, optionally add visual context, and get a score plus stronger rewrites.
 
 ## Product Naming
 
@@ -70,9 +70,7 @@ The product should feel like a fast pre-posting check, not a full content strate
    - goal: views, trust, sales, education, or comments.
 
 2. Optional input:
-   - screenshot of the first frame;
-   - caption draft;
-   - transcript of the first 3-5 seconds.
+   - opening video reference as visual context.
 
 3. App returns:
    - overall Hook Score;
@@ -101,7 +99,7 @@ Use:
 - niche;
 - target viewer;
 - goal;
-- optional screenshot of first frame.
+- optional visual context.
 
 Avoid at MVP:
 
@@ -198,7 +196,7 @@ Use:
 - structured JSON output;
 - scoring rubric;
 - hook pattern library;
-- optional vision model for first-frame screenshot analysis.
+- optional vision model for opening visual analysis.
 
 Do not use at MVP:
 
@@ -225,7 +223,7 @@ Build a simple product with:
 - target audience field;
 - video goal selector;
 - niche selector;
-- optional first-frame screenshot upload;
+- optional visual context upload;
 - score screen;
 - 3 rewrite options;
 - variant comparison;

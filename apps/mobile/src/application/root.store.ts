@@ -20,8 +20,14 @@ export class RootStore {
 
   readonly services = {
     auth: new AuthService(),
-    geminiHttp: new HttpClient(appConfig.geminiBaseUrl, { serviceName: 'Gemini API' }),
-    openAiHttp: new HttpClient(appConfig.openAiBaseUrl, { serviceName: 'OpenAI API' }),
+    geminiHttp: new HttpClient(appConfig.geminiBaseUrl, {
+      serviceName: 'Gemini API',
+      retry: { maxAttempts: 3 },
+    }),
+    openAiHttp: new HttpClient(appConfig.openAiBaseUrl, {
+      serviceName: 'OpenAI API',
+      retry: { maxAttempts: 3 },
+    }),
     analyzer: null as VideoAnalyzerClient | null,
     gemini: null as GeminiClient | null,
     openAi: null as OpenAIClient | null,

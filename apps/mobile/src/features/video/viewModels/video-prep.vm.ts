@@ -34,7 +34,6 @@ export class VideoPrepViewModel {
       videoDescription: '',
       targetAudience: '',
       niche: '',
-      firstFrameContext: '',
       goals: ['views'],
     };
   }
@@ -277,7 +276,6 @@ export class VideoPrepViewModel {
       videoDescription: this.context.videoDescription.trim(),
       targetAudience: this.context.targetAudience.trim(),
       niche: this.context.niche.trim(),
-      firstFrameContext: this.context.firstFrameContext.trim(),
       goals: [...this.context.goals],
     };
   }

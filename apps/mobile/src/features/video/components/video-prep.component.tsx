@@ -11,6 +11,7 @@ import {
 import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppButton } from '../../../shared/components/app-button.component';
+import { DictationTextField } from '../../../shared/components/dictation-text-field.component';
 import { IconButton } from '../../../shared/components/icon-button.component';
 import { InfoPill } from '../../../shared/components/info-pill.component';
 import { ScreenContainer } from '../../../shared/components/screen-container.component';
@@ -19,6 +20,7 @@ import {
   SegmentOption,
 } from '../../../shared/components/segmented-control.component';
 import { TextField } from '../../../shared/components/text-field.component';
+import { Locale } from '../../../shared/i18n/translations';
 import { radii, spacing, typography } from '../../../shared/theme/theme';
 import { useAppTheme } from '../../../shared/theme/theme.provider';
 import {
@@ -34,6 +36,11 @@ type VideoPrepCopy = {
   subtitle: string;
   settings: string;
   contextTitle: string;
+  dictate: string;
+  dictationPermissionDeniedMessage: string;
+  dictationPermissionDeniedTitle: string;
+  dictationUnavailableMessage: string;
+  dictationUnavailableTitle: string;
   hookText: string;
   hookTextPlaceholder: string;
   description: string;
@@ -43,9 +50,6 @@ type VideoPrepCopy = {
   niche: string;
   nichePlaceholder: string;
   goal: string;
-  optionalSubtitle: string;
-  firstFrameContext: string;
-  firstFrameContextPlaceholder: string;
   pickVideo: string;
   repickVideo: string;
   selected: string;
@@ -54,6 +58,7 @@ type VideoPrepCopy = {
   sourceLoading: string;
   ready: string;
   duration: string;
+  stopDictation: string;
   analyze: string;
   todayUsage: string;
   usageLoading: string;
@@ -89,9 +94,10 @@ type VideoPrepScreenProps = {
   promoCode: string;
   promoCodeFeedback?: string | null;
   isPromoCodeRedeeming: boolean;
+  dictationLocale: Locale;
   canRedeemPromoCode: boolean;
   onContextChange: (
-    field: 'hookText' | 'videoDescription' | 'targetAudience' | 'niche' | 'firstFrameContext',
+    field: 'hookText' | 'videoDescription' | 'targetAudience' | 'niche',
     value: string
   ) => void;
   onPromoCodeChange: (value: string) => void;
@@ -128,6 +134,7 @@ export function VideoPrepScreen({
   promoCode,
   promoCodeFeedback,
   isPromoCodeRedeeming,
+  dictationLocale,
   canRedeemPromoCode,
   onContextChange,
   onPromoCodeChange,
@@ -248,34 +255,62 @@ export function VideoPrepScreen({
           style={[styles.sectionAccent, { backgroundColor: colors.accent }]}
         />
         <Text style={[styles.sectionTitle, { color: colors.text }]}>{copy.contextTitle}</Text>
-        <TextField
+        <DictationTextField
+          dictateLabel={copy.dictate}
+          dictationPermissionDeniedMessage={copy.dictationPermissionDeniedMessage}
+          dictationPermissionDeniedTitle={copy.dictationPermissionDeniedTitle}
+          dictationLocale={dictationLocale}
+          dictationUnavailableMessage={copy.dictationUnavailableMessage}
+          dictationUnavailableTitle={copy.dictationUnavailableTitle}
           editable={!videoActionsDisabled}
           label={copy.hookText}
           onChangeText={(value) => onContextChange('hookText', value)}
           placeholder={copy.hookTextPlaceholder}
           style={styles.hookInput}
+          stopDictationLabel={copy.stopDictation}
           value={context.hookText}
         />
-        <TextField
+        <DictationTextField
+          dictateLabel={copy.dictate}
+          dictationPermissionDeniedMessage={copy.dictationPermissionDeniedMessage}
+          dictationPermissionDeniedTitle={copy.dictationPermissionDeniedTitle}
+          dictationLocale={dictationLocale}
+          dictationUnavailableMessage={copy.dictationUnavailableMessage}
+          dictationUnavailableTitle={copy.dictationUnavailableTitle}
           editable={!videoActionsDisabled}
           label={copy.description}
           multiline
           onChangeText={(value) => onContextChange('videoDescription', value)}
           placeholder={copy.descriptionPlaceholder}
+          stopDictationLabel={copy.stopDictation}
           value={context.videoDescription}
         />
-        <TextField
+        <DictationTextField
+          dictateLabel={copy.dictate}
+          dictationPermissionDeniedMessage={copy.dictationPermissionDeniedMessage}
+          dictationPermissionDeniedTitle={copy.dictationPermissionDeniedTitle}
+          dictationLocale={dictationLocale}
+          dictationUnavailableMessage={copy.dictationUnavailableMessage}
+          dictationUnavailableTitle={copy.dictationUnavailableTitle}
           editable={!videoActionsDisabled}
           label={copy.niche}
           onChangeText={(value) => onContextChange('niche', value)}
           placeholder={copy.nichePlaceholder}
+          stopDictationLabel={copy.stopDictation}
           value={context.niche}
         />
-        <TextField
+        <DictationTextField
+          dictateLabel={copy.dictate}
+          dictationPermissionDeniedMessage={copy.dictationPermissionDeniedMessage}
+          dictationPermissionDeniedTitle={copy.dictationPermissionDeniedTitle}
+          dictationLocale={dictationLocale}
+          dictationUnavailableMessage={copy.dictationUnavailableMessage}
+          dictationUnavailableTitle={copy.dictationUnavailableTitle}
           editable={!videoActionsDisabled}
           label={copy.audience}
           onChangeText={(value) => onContextChange('targetAudience', value)}
           placeholder={copy.audiencePlaceholder}
+          stopDictationLabel={copy.stopDictation}
           value={context.targetAudience}
         />
         <Text style={[styles.label, { color: colors.textMuted }]}>{copy.goal}</Text>
@@ -301,18 +336,6 @@ export function VideoPrepScreen({
           <ImagePlus color={colors.sky} size={18} />
           <Text style={[styles.sectionTitle, { color: colors.text }]}>{copy.selected}</Text>
         </View>
-        <Text style={[styles.sectionCopy, { color: colors.textMuted }]}>
-          {copy.optionalSubtitle}
-        </Text>
-
-        <TextField
-          editable={!videoActionsDisabled}
-          label={copy.firstFrameContext}
-          multiline
-          onChangeText={(value) => onContextChange('firstFrameContext', value)}
-          placeholder={copy.firstFrameContextPlaceholder}
-          value={context.firstFrameContext}
-        />
 
         {selectedVideo ? (
           <View
@@ -511,10 +534,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '800',
-  },
-  sectionCopy: {
-    fontSize: typography.small,
-    lineHeight: 19,
   },
   hookInput: {
     minHeight: 64,

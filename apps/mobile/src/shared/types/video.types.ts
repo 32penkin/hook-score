@@ -7,7 +7,6 @@ export type HookContext = {
   videoDescription: string;
   targetAudience: string;
   niche: string;
-  firstFrameContext: string;
   goals: HookGoal[];
 };
 

@@ -45,8 +45,10 @@ Video analysis runs directly in the app for the MVP. The app samples image frame
 ```sh
 EXPO_PUBLIC_AI_PROVIDER=gemini
 EXPO_PUBLIC_GEMINI_API_KEY=...
-EXPO_PUBLIC_GEMINI_MODEL=gemini-2.5-flash
+EXPO_PUBLIC_GEMINI_MODEL=gemini-2.5-flash-lite
 ```
+
+Use `gemini-2.5-flash` instead when you need a stronger quality pass for visual or audio analysis.
 
 OpenAI is also available:
 

@@ -11,6 +11,7 @@ import {
   VideoAnalyzerUsageService,
 } from '../../../services/usage/video-analyzer-usage.service';
 import { VideoAnalyzerClient } from '../../../services/analysis/video-analyzer.client';
+import { HttpRequestError } from '../../../services/api/http.api';
 import { stringifyForLog } from '../../../services/api/api-logger';
 import { VideoAudioExtractionService } from '../../../services/video/video-audio-extraction.service';
 import { VideoFrameExtractionService } from '../../../services/video/video-frame-extraction.service';
@@ -37,6 +38,17 @@ const logError = (event: string, error: unknown) => {
 };
 
 const getErrorLogPayload = (error: unknown) => {
+  if (error instanceof HttpRequestError) {
+    return {
+      name: error.name,
+      message: error.message,
+      status: error.status,
+      statusText: error.statusText,
+      responseBody: error.responseBody,
+      stack: error.stack,
+    };
+  }
+
   if (error instanceof Error) {
     return {
       name: error.name,
@@ -235,7 +247,6 @@ export class VideoStore {
       goals: context.goals,
       hasHookText: Boolean(context.hookText),
       hasVideoDescription: Boolean(context.videoDescription),
-      hasFirstFrameContext: Boolean(context.firstFrameContext),
     });
 
     runInAction(() => {
@@ -250,8 +261,6 @@ export class VideoStore {
       const audio = this.preparedClip && this.analyzerClient.supportsAudioInput
         ? await this.audioExtractionService.extractOpeningAudio(this.preparedClip)
         : null;
-      const guestUsage =
-        scope === 'guest' ? await this.analyzerUsageService.recordAnalysisUse('guest') : null;
       const result = await this.analyzerClient.createHookScore({
         clip: sourceClip,
         context,
@@ -259,6 +268,8 @@ export class VideoStore {
         audio,
         outputLocale,
       });
+      const guestUsage =
+        scope === 'guest' ? await this.analyzerUsageService.recordAnalysisUse('guest') : null;
       const savedAnalysis =
         scope === 'authenticated'
           ? await this.analyzerUsageService.recordAnalysisResult({
@@ -394,7 +405,15 @@ export class VideoStore {
   }
 
   private getErrorMessage(error: unknown, fallback: string) {
+    if (error instanceof HttpRequestError && this.isTransientAnalyzerStatus(error.status)) {
+      return 'The analyzer is temporarily unavailable. Please try again in a moment.';
+    }
+
     return error instanceof Error ? error.message : fallback;
+  }
+
+  private isTransientAnalyzerStatus(status: number) {
+    return [408, 409, 425, 429, 500, 502, 503, 504].includes(status);
   }
 
   private getAnalysisLimitErrorMessage(scope: VideoAnalyzerUsageScope) {

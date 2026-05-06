@@ -40,7 +40,7 @@ type GeminiPart =
       };
     };
 
-const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
+const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash-lite';
 
 export class GeminiClient implements VideoAnalyzerClient {
   readonly supportsAudioInput = true;

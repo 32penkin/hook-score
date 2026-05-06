@@ -57,6 +57,11 @@ export const VideoPrepContainer = observer(function VideoPrepContainer({ navigat
           ? i18nStore.t('common.settings')
           : i18nStore.t('auth.login'),
         contextTitle: i18nStore.t('video.contextTitle'),
+        dictate: i18nStore.t('common.dictate'),
+        dictationPermissionDeniedMessage: i18nStore.t('common.dictationPermissionDeniedMessage'),
+        dictationPermissionDeniedTitle: i18nStore.t('common.dictationPermissionDeniedTitle'),
+        dictationUnavailableMessage: i18nStore.t('common.dictationUnavailableMessage'),
+        dictationUnavailableTitle: i18nStore.t('common.dictationUnavailableTitle'),
         hookText: i18nStore.t('video.hookText'),
         hookTextPlaceholder: i18nStore.t('video.hookTextPlaceholder'),
         description: i18nStore.t('video.description'),
@@ -66,9 +71,6 @@ export const VideoPrepContainer = observer(function VideoPrepContainer({ navigat
         niche: i18nStore.t('video.niche'),
         nichePlaceholder: i18nStore.t('video.nichePlaceholder'),
         goal: i18nStore.t('video.goal'),
-        optionalSubtitle: i18nStore.t('video.optionalSubtitle'),
-        firstFrameContext: i18nStore.t('video.firstFrameContext'),
-        firstFrameContextPlaceholder: i18nStore.t('video.firstFrameContextPlaceholder'),
         pickVideo: i18nStore.t('video.pickVideo'),
         repickVideo: i18nStore.t('video.repickVideo'),
         selected: i18nStore.t('video.selected'),
@@ -77,6 +79,7 @@ export const VideoPrepContainer = observer(function VideoPrepContainer({ navigat
         sourceLoading: i18nStore.t('video.sourceLoading'),
         ready: i18nStore.t('video.ready'),
         duration: i18nStore.t('video.duration'),
+        stopDictation: i18nStore.t('common.stopDictation'),
         analyze: i18nStore.t('video.analyze'),
         todayUsage: authStore.isAuthenticated
           ? i18nStore.t('video.todayUsage')
@@ -97,6 +100,7 @@ export const VideoPrepContainer = observer(function VideoPrepContainer({ navigat
       }}
       canAnalyze={viewModel.canAnalyze}
       canRedeemPromoCode={viewModel.canRedeemPromoCode}
+      dictationLocale={i18nStore.locale}
       error={viewModel.errorKey ? i18nStore.t(viewModel.errorKey) : viewModel.errorMessage}
       goalOptions={goalOptions}
       isAnalyzing={viewModel.isAnalyzing}

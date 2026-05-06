@@ -1,21 +1,32 @@
-import { useState } from 'react';
+import { ReactNode, useState } from 'react';
 import { StyleSheet, Text, TextInput, TextInputProps, View } from 'react-native';
 
 import { radii, spacing, typography } from '../theme/theme';
 import { useAppTheme } from '../theme/theme.provider';
 
-type TextFieldProps = TextInputProps & {
+export type TextFieldProps = TextInputProps & {
   label: string;
+  rightAccessory?: ReactNode;
 };
 
-export function TextField({ label, onBlur, onFocus, style, ...props }: TextFieldProps) {
+export function TextField({
+  label,
+  onBlur,
+  onFocus,
+  rightAccessory,
+  style,
+  ...props
+}: TextFieldProps) {
   const { colors } = useAppTheme();
   const [isFocused, setIsFocused] = useState(false);
   const isEditable = props.editable !== false;
 
   return (
     <View style={styles.wrapper}>
-      <Text style={[styles.label, { color: colors.textMuted }]}>{label}</Text>
+      <View style={styles.labelRow}>
+        <Text style={[styles.label, { color: colors.textMuted }]}>{label}</Text>
+        {rightAccessory ? <View style={styles.accessory}>{rightAccessory}</View> : null}
+      </View>
       <TextInput
         onBlur={(event) => {
           setIsFocused(false);
@@ -49,9 +60,19 @@ const styles = StyleSheet.create({
   wrapper: {
     gap: spacing.sm,
   },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
   label: {
+    flex: 1,
+    minWidth: 0,
     fontSize: typography.small,
     fontWeight: '700',
+  },
+  accessory: {
+    flexShrink: 0,
   },
   input: {
     minHeight: 48,

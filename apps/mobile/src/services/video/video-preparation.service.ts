@@ -96,7 +96,6 @@ export class VideoPreparationService {
     const descriptionLength = context.videoDescription.length;
     const audienceLength = context.targetAudience.length;
     const nicheLength = context.niche.length;
-    const firstFrameLength = context.firstFrameContext.length;
     const goalCount = context.goals.length;
 
     const clarity = this.clampScore(48 + Math.min(24, hookTextLength) + (descriptionLength > 24 ? 12 : 0));
@@ -104,7 +103,7 @@ export class VideoPreparationService {
     const payoffSpeed = this.clampScore(56 + (hookTextLength > 90 ? -12 : 8));
     const curiosity = this.clampScore(50 + (hookTextLength > 18 ? 14 : 0) + (descriptionLength > 24 ? 8 : 0));
     const audienceFit = this.clampScore(46 + Math.min(goalCount, 3) * 8 + (audienceLength > 8 ? 16 : 0));
-    const visualTextMatch = this.clampScore(48 + (firstFrameLength > 8 ? 18 : 0) + (descriptionLength > 24 ? 8 : 0));
+    const visualTextMatch = this.clampScore(50 + (descriptionLength > 24 ? 14 : 0) + (hookTextLength > 8 ? 8 : 0));
     const scrollResistance = this.clampScore(48 + (hookTextLength > 8 ? 14 : 0) + (hookTextLength > 100 ? -12 : 0));
     const score = Math.round(
       (
@@ -145,7 +144,7 @@ export class VideoPreparationService {
         `I would not start ${context.niche || 'this video'} until I fixed this.`,
       ],
       rewrite: `${rewriteBase} - here is the part most people miss.`,
-      firstFrameText: context.firstFrameContext || 'Start with the outcome, not the setup.',
+      firstFrameText: 'Start with the outcome, not the setup.',
     };
   }
 

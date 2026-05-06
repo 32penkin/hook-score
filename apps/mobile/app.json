@@ -17,7 +17,13 @@
       "supportsTablet": true,
       "config": {
         "usesNonExemptEncryption": false
-      }
+      },
+      "infoPlist": {
+        "NSSpeechRecognitionUsageDescription": "Allow $(PRODUCT_NAME) to turn dictated speech into hook text.",
+        "NSMicrophoneUsageDescription": "Allow $(PRODUCT_NAME) to use the microphone for dictating hook context."
+      },
+      "bundleIdentifier": "com.32penkin.hook-score",
+      "appleTeamId": "JPR9ACSXL5"
     },
     "android": {
       "adaptiveIcon": {
@@ -25,14 +31,24 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-secure-store",
-      "expo-localization"
+      "expo-localization",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow $(PRODUCT_NAME) to use the microphone for dictating hook context.",
+          "speechRecognitionPermission": "Allow $(PRODUCT_NAME) to turn dictated speech into hook text."
+        }
+      ]
     ]
   }
 }

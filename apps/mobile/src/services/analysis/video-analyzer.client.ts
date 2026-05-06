@@ -198,7 +198,7 @@ export const buildHookScorePrompt = (input: HookAnalysisInput) =>
       frameSampling:
         input.frames.length > 0
           ? 'Frames are sampled from the optional opening video context in chronological order.'
-          : 'No image or video frame is attached. Score from the hook, idea, viewer, niche, goal, and first-frame/caption notes only.',
+          : 'No image or video frame is attached. Score from the hook, idea, viewer, niche, and goal only.',
       audioSampling: input.audio
         ? 'A short audio sample from the same opening window is attached. Use it to judge spoken hook clarity, voice energy, music/silence, pacing, and audio-visual fit.'
         : 'No audio sample is attached. Do not infer speech, music, or sound quality beyond the written context.',
@@ -219,7 +219,7 @@ export const buildHookScorePrompt = (input: HookAnalysisInput) =>
   );
 
 export const hookScoreSystemInstruction =
-  'You are HookScore, a short-form video hook analyst. Judge the opening from the first spoken line or on-screen text, the creator context, and any optional first-frame context. Do not require video processing. Score harshly but practically. Return JSON only. Follow the requested output language for user-facing analysis text while keeping schema enum values unchanged.';
+  'You are HookScore, a short-form video hook analyst. Judge the opening from the first spoken line or on-screen text, creator context, and any attached opening visual or audio samples. Do not require video processing. Score harshly but practically. Return JSON only. Follow the requested output language for user-facing analysis text while keeping schema enum values unchanged.';
 
 export const stripJsonFence = (value: string) =>
   value
