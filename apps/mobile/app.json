@@ -26,6 +26,8 @@
       "appleTeamId": "JPR9ACSXL5"
     },
     "android": {
+      "package": "com.hookscore.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"

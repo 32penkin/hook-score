@@ -19,7 +19,7 @@ export const AnalysisResultContainer = observer(function AnalysisResultContainer
   navigation,
   route,
 }: Props) {
-  const { i18nStore, videoStore } = useRootStore();
+  const { i18nStore, services, videoStore } = useRootStore();
   const historyResult = route.params?.historyItemId
     ? videoStore.analysisHistory.find((item) => item.id === route.params?.historyItemId)?.result
     : null;
@@ -57,10 +57,16 @@ export const AnalysisResultContainer = observer(function AnalysisResultContainer
         details: i18nStore.t('analysis.details'),
         observations: i18nStore.t('analysis.observations'),
         nextSteps: i18nStore.t('analysis.nextSteps'),
+        reportResult: i18nStore.t('analysis.reportResult'),
+        reportResultSent: i18nStore.t('analysis.reportResultSent'),
+        reportResultError: i18nStore.t('analysis.reportResultError'),
       }}
       goalLabels={goalLabels}
       result={result}
       onBack={navigation.goBack}
+      onReportResult={(analysisResult) =>
+        services.videoAnalyzerUsage.reportAnalysisResult(analysisResult)
+      }
     />
   );
 });

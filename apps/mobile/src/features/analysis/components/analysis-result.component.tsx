@@ -1,8 +1,9 @@
-import { ComponentType } from 'react';
+import { ComponentType, useState } from 'react';
 import {
   ArrowLeft,
   CheckCircle2,
   Eye,
+  Flag,
   Lightbulb,
   Sparkles,
   Target,
@@ -10,6 +11,7 @@ import {
 } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { AppButton } from '../../../shared/components/app-button.component';
 import { IconButton } from '../../../shared/components/icon-button.component';
 import { ScreenContainer } from '../../../shared/components/screen-container.component';
 import { AppColors, radii, spacing, typography } from '../../../shared/theme/theme';
@@ -39,6 +41,9 @@ type AnalysisResultCopy = {
   details: string;
   observations: string;
   nextSteps: string;
+  reportResult: string;
+  reportResultSent: string;
+  reportResultError: string;
 };
 
 type AnalysisResultScreenProps = {
@@ -46,6 +51,7 @@ type AnalysisResultScreenProps = {
   result: HookAnalysisResult | null;
   goalLabels: Record<HookGoal, string>;
   onBack: () => void;
+  onReportResult: (result: HookAnalysisResult) => Promise<unknown>;
 };
 
 type IconProps = {
@@ -59,6 +65,7 @@ export function AnalysisResultScreen({
   result,
   goalLabels,
   onBack,
+  onReportResult,
 }: AnalysisResultScreenProps) {
   const { colors } = useAppTheme();
 
@@ -82,7 +89,12 @@ export function AnalysisResultScreen({
           <Text style={[styles.emptyText, { color: colors.textMuted }]}>{copy.empty}</Text>
         </View>
       ) : (
-        <ResultContent copy={copy} goalLabels={goalLabels} result={result} />
+        <ResultContent
+          copy={copy}
+          goalLabels={goalLabels}
+          onReportResult={onReportResult}
+          result={result}
+        />
       )}
     </ScreenContainer>
   );
@@ -91,18 +103,41 @@ export function AnalysisResultScreen({
 function ResultContent({
   copy,
   goalLabels,
+  onReportResult,
   result,
 }: {
   copy: AnalysisResultCopy;
   goalLabels: Record<HookGoal, string>;
+  onReportResult: (result: HookAnalysisResult) => Promise<unknown>;
   result: HookAnalysisResult;
 }) {
   const { colors } = useAppTheme();
+  const [isReportSubmitting, setIsReportSubmitting] = useState(false);
+  const [reportNotice, setReportNotice] = useState<string | null>(null);
+  const [reportError, setReportError] = useState<string | null>(null);
   const scoreColor = getScoreColor(result.score, colors);
   const verdict = result.verdict || getFallbackVerdict(result.score);
   const rewrites = getRewriteOptions(result);
   const goals = result.goals.map((goal) => goalLabels[goal]).join(', ');
   const normalizedScore = clampScore(result.score);
+  const handleReportResult = async () => {
+    if (isReportSubmitting) {
+      return;
+    }
+
+    setIsReportSubmitting(true);
+    setReportNotice(null);
+    setReportError(null);
+
+    try {
+      await onReportResult(result);
+      setReportNotice(copy.reportResultSent);
+    } catch {
+      setReportError(copy.reportResultError);
+    } finally {
+      setIsReportSubmitting(false);
+    }
+  };
 
   return (
     <>
@@ -232,6 +267,27 @@ function ResultContent({
           ) : null}
         </View>
       ) : null}
+
+      <View style={styles.reportSection}>
+        <AppButton
+          icon={Flag}
+          label={copy.reportResult}
+          loading={isReportSubmitting}
+          onPress={handleReportResult}
+          tone="danger"
+          variant="secondary"
+        />
+        {reportNotice ? (
+          <Text style={[styles.reportFeedback, { color: colors.accent }]}>
+            {reportNotice}
+          </Text>
+        ) : null}
+        {reportError ? (
+          <Text style={[styles.reportFeedback, { color: colors.danger }]}>
+            {reportError}
+          </Text>
+        ) : null}
+      </View>
     </>
   );
 }
@@ -572,5 +628,13 @@ const styles = StyleSheet.create({
     fontSize: typography.micro,
     fontWeight: '800',
     textTransform: 'uppercase',
+  },
+  reportSection: {
+    gap: spacing.sm,
+  },
+  reportFeedback: {
+    fontSize: typography.small,
+    fontWeight: '800',
+    lineHeight: 20,
   },
 });

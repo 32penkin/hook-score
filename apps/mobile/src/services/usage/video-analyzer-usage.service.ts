@@ -26,6 +26,8 @@ export const VIDEO_ANALYZER_GUEST_SETUP_ERROR_MESSAGE =
   'Guest hook checks are not enabled in Supabase yet. Apply the latest guest usage migration.';
 export const VIDEO_ANALYZER_PROMO_CODE_SETUP_ERROR_MESSAGE =
   'Promo code redemption is not enabled in Supabase yet. Apply the latest promo code migration.';
+export const AI_RESULT_REPORT_SETUP_ERROR_MESSAGE =
+  'AI result reporting is not enabled in Supabase yet. Apply the latest report migration.';
 
 export type VideoAnalyzerHistoryItem = {
   id: string;
@@ -60,6 +62,11 @@ type RecordAnalysisResultInput = {
 type RecordedAnalysisResult = {
   usage: VideoAnalyzerDailyUsage;
   historyItem: VideoAnalyzerHistoryItem;
+};
+
+type ReportAiResultRpcRow = {
+  id: string;
+  created_at: string;
 };
 
 const logDebug = (event: string, payload?: Record<string, unknown>) => {
@@ -379,6 +386,56 @@ export class VideoAnalyzerUsageService {
     });
 
     return recordedResult;
+  }
+
+  async reportAnalysisResult(result: HookAnalysisResult) {
+    logDebug('reportAnalysisResult:start', {
+      analysisId: result.id,
+      score: result.score,
+      model: result.model,
+    });
+
+    const client = getClient();
+    const { data, error } = await client.rpc('report_ai_result', {
+      p_result_id: result.id,
+      p_result: result,
+      p_report_reason: 'offensive_or_incorrect_ai_content',
+    });
+
+    if (error) {
+      if (isPostgrestFunctionMissingError(error, 'report_ai_result')) {
+        logDebug('reportAnalysisResult:schema-missing', {
+          message: AI_RESULT_REPORT_SETUP_ERROR_MESSAGE,
+        });
+
+        throw new Error(AI_RESULT_REPORT_SETUP_ERROR_MESSAGE);
+      }
+
+      logError('reportAnalysisResult:error', error);
+      throw error;
+    }
+
+    const row = (Array.isArray(data) ? data[0] : data) as
+      | ReportAiResultRpcRow
+      | null;
+
+    if (!row?.id) {
+      logError('reportAnalysisResult:empty-response', {
+        analysisId: result.id,
+      });
+      throw new Error('AI result report was not saved');
+    }
+
+    logDebug('reportAnalysisResult:success', {
+      reportId: row.id,
+      createdAt: row.created_at,
+      analysisId: result.id,
+    });
+
+    return {
+      id: row.id,
+      createdAt: row.created_at,
+    };
   }
 
   async getAnalysisHistory(limit = 30): Promise<VideoAnalyzerHistoryItem[]> {
